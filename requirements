@@ -1,0 +1,9 @@
+django
+djangorestframework
+djangorestframework-simplejwt
+bcrypt
+daphne
+django-cors-headers
+channels
+django-redis
+Pillow

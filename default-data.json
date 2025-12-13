@@ -1,0 +1,510 @@
+[
+  {
+    "model": "rbac.Permission",
+    "pk": 1,
+    "fields": {
+      "scope": "system",
+      "object": "user",
+      "action": "create",
+      "code": "system.user.create",
+      "name": "添加用户"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 2,
+    "fields": {
+      "scope": "system",
+      "object": "user",
+      "action": "delete",
+      "code": "system.user.delete",
+      "name": "删除用户"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 3,
+    "fields": {
+      "scope": "system",
+      "object": "user",
+      "action": "update",
+      "code": "system.user.update",
+      "name": "修改用户"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 4,
+    "fields": {
+      "scope": "system",
+      "object": "user",
+      "action": "read",
+      "code": "system.user.read",
+      "name": "查看用户"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 5,
+    "fields": {
+      "scope": "system",
+      "object": "role",
+      "action": "create",
+      "code": "system.role.create",
+      "name": "添加角色"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 6,
+    "fields": {
+      "scope": "system",
+      "object": "role",
+      "action": "delete",
+      "code": "system.role.delete",
+      "name": "删除角色"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 7,
+    "fields": {
+      "scope": "system",
+      "object": "role",
+      "action": "update",
+      "code": "system.role.update",
+      "name": "修改角色"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 8,
+    "fields": {
+      "scope": "system",
+      "object": "role",
+      "action": "read",
+      "code": "system.role.read",
+      "name": "查看角色"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 9,
+    "fields": {
+      "scope": "system",
+      "object": "perm",
+      "action": "read",
+      "code": "system.perm.read",
+      "name": "查看权限"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 10,
+    "fields": {
+      "scope": "permissions",
+      "object": "role",
+      "action": "read",
+      "code": "permissions.role.read",
+      "name": "查看授权"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 11,
+    "fields": {
+      "scope": "permissions",
+      "object": "role",
+      "action": "create",
+      "code": "permissions.role.create",
+      "name": "添加授权"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 12,
+    "fields": {
+      "scope": "permissions",
+      "object": "role",
+      "action": "delete",
+      "code": "permissions.role.delete",
+      "name": "删除授权"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 13,
+    "fields": {
+      "scope": "resource",
+      "object": "self",
+      "action": "create",
+      "code": "resource.self.create",
+      "name": "添加资源"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 14,
+    "fields": {
+      "scope": "resource",
+      "object": "self",
+      "action": "delete",
+      "code": "resource.self.delete",
+      "name": "删除资源"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 15,
+    "fields": {
+      "scope": "resource",
+      "object": "self",
+      "action": "update",
+      "code": "resource.self.update",
+      "name": "修改资源"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 16,
+    "fields": {
+      "scope": "resource",
+      "object": "self",
+      "action": "read",
+      "code": "resource.self.read",
+      "name": "查看资源"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 17,
+    "fields": {
+      "scope": "resource",
+      "object": "account",
+      "action": "create",
+      "code": "resource.account.create",
+      "name": "创建资源账户"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 18,
+    "fields": {
+      "scope": "resource",
+      "object": "account",
+      "action": "delete",
+      "code": "resource.account.delete",
+      "name": "删除资源账户"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 19,
+    "fields": {
+      "scope": "resource",
+      "object": "account",
+      "action": "update",
+      "code": "resource.account.update",
+      "name": "修改资源账户"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 20,
+    "fields": {
+      "scope": "resource",
+      "object": "account",
+      "action": "read",
+      "code": "resource.account.read",
+      "name": "查看资源账户"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 21,
+    "fields": {
+      "scope": "audit",
+      "object": "session",
+      "action": "read",
+      "code": "audit.session.read",
+      "name": "查看会话"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 22,
+    "fields": {
+      "scope": "audit",
+      "object": "operation",
+      "action": "read",
+      "code": "audit.operation.read",
+      "name": "查看操作"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 23,
+    "fields": {
+      "scope": "user",
+      "object": "profile",
+      "action": "read",
+      "code": "user.profile.read",
+      "name": "查看个人信息"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 24,
+    "fields": {
+      "scope": "user",
+      "object": "profile",
+      "action": "update",
+      "code": "user.profile.update",
+      "name": "修改个人信息"
+    }
+  },
+  {
+    "model": "rbac.Role",
+    "pk": 1,
+    "fields": {
+      "name": "管理员",
+      "code": "administrator",
+      "description": "超级管理员",
+      "status": true,
+      "protected": true,
+      "create_date": "2025-01-01T00:00:00Z",
+      "update_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "rbac.User",
+    "pk": 1,
+    "fields": {
+      "account": "administrator",
+      "password": "$2b$12$X/197BEWcjze1SaKP5ucaeCBFQ0PpJUxMVcFPJr7PBg3BIYabn/0W",
+      "name": "管理员",
+      "email": "1964282264@qq.com",
+      "status": true,
+      "protected": true,
+      "roles": [1],
+      "create_date": "2025-01-01T00:00:00Z",
+      "update_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 1,
+    "fields": {
+        "role": 1,
+        "permission": 1,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 2,
+    "fields": {
+        "role": 1,
+        "permission": 2,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 3,
+    "fields": {
+        "role": 1,
+        "permission": 3,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 4,
+    "fields": {
+        "role": 1,
+        "permission": 4,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 5,
+    "fields": {
+        "role": 1,
+        "permission": 5,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 6,
+    "fields": {
+        "role": 1,
+        "permission": 6,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 7,
+    "fields": {
+        "role": 1,
+        "permission": 7,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 8,
+    "fields": {
+        "role": 1,
+        "permission": 8,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 9,
+    "fields": {
+        "role": 1,
+        "permission": 9,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 10,
+    "fields": {
+        "role": 1,
+        "permission": 10,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 11,
+    "fields": {
+        "role": 1,
+        "permission": 11,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 12,
+    "fields": {
+        "role": 1,
+        "permission": 12,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 13,
+    "fields": {
+        "role": 1,
+        "permission": 13,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 14,
+    "fields": {
+        "role": 1,
+        "permission": 14,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 15,
+    "fields": {
+        "role": 1,
+        "permission": 15,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 16,
+    "fields": {
+        "role": 1,
+        "permission": 16,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 17,
+    "fields": {
+        "role": 1,
+        "permission": 17,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 18,
+    "fields": {
+        "role": 1,
+        "permission": 18,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 19,
+    "fields": {
+        "role": 1,
+        "permission": 19,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 20,
+    "fields": {
+        "role": 1,
+        "permission": 20,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 21,
+    "fields": {
+        "role": 1,
+        "permission": 21,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 22,
+    "fields": {
+        "role": 1,
+        "permission": 22,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 23,
+    "fields": {
+        "role": 1,
+        "permission": 23,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 24,
+    "fields": {
+        "role": 1,
+        "permission": 24,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  }
+]
