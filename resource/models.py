@@ -6,31 +6,54 @@ class Resource(models.Model):
     name = models.CharField(max_length=20, unique=True)
     code = models.CharField(max_length=20, unique=True)
     status = models.BooleanField(default=True)
-    ipv4_address = models.GenericIPAddressField(protocol='IPv4', unique=True)
+    ipv4_address = models.GenericIPAddressField(protocol='IPv4', unique=True, null=True, blank=True)
     ipv6_address = models.GenericIPAddressField(protocol='IPv6', unique=True, null=True, blank=True)
     domain = models.CharField(max_length=100, unique=True, null=True, blank=True)
     port = models.IntegerField(default=22)
-    
+    vouchers = models.ManyToManyField('resource.ResourceVoucher',related_name='resources',blank=True)
     is_production = models.BooleanField(default=False)
     description = models.TextField(null=True, blank=True)
+    create_user = models.ForeignKey('rbac.User',on_delete=models.SET_NULL,blank=True,null=True)
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
     group = models.ForeignKey('ResourceGroup', on_delete=models.SET_NULL, null=True, blank=True, related_name='resources')
     resource_type = models.ForeignKey('ResourceType', on_delete=models.SET_NULL, null=True, blank=True, related_name='resources')
     protocol = models.ForeignKey('Protocol', on_delete=models.SET_NULL, null=True, blank=True, related_name='resources')
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition = (
+                    models.Q(ipv4_address__isnull = False,ipv6_address__isnull=True) |
+                    models.Q(ipv6_address__isnull = True,ipv4_address__isnull=False)
+                ),
+                name='resource_exactly_one_ip'
+            )
+        ]
 
-class ResourceAccount(models.Model):
+class ResourceVoucher(models.Model):
     id = models.AutoField(primary_key=True)
+    code = models.CharField(max_length=50)
     username = models.CharField(max_length=50)
-    password = models.CharField(max_length=256)
+    password = models.CharField(max_length=256,null=True,blank=True)
     private_key = models.TextField(null=True, blank=True)
+    publiced = models.BooleanField(default=True)
     is_default = models.BooleanField(default=False)
     description = models.TextField(null=True, blank=True)
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
 
-    resource = models.ForeignKey(Resource, on_delete=models.CASCADE, related_name='accounts')
     create_user = models.ForeignKey('rbac.User', on_delete=models.SET_NULL, null=True, blank=True, related_name='create_resource_accounts')
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition = (
+                    models.Q(password__isnull = False,private_key__isnull=True) |
+                    models.Q(private_key__isnull = True,password__isnull=False)
+                ),
+                name='%(class)s_exactly_one_of_password_or_private_key'
+            )
+        ]
+
 
 class ResourceGroup(models.Model):
     id = models.AutoField(primary_key=True)

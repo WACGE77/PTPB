@@ -17,11 +17,18 @@ Including another URLconf
 from django.conf.urls.static import static
 # from django.contrib import admin
 from django.urls import path, include
-
+from terminal.urls import websocket_urlpatterns as terminal
 from BackEnd import settings
-
+from channels.routing import URLRouter
 urlpatterns = [
     #    path('admin/', admin.site.urls),
     path('api/rbac/', include('rbac.urls')),
     path('api/', include('terminal.urls')),
+    path('api/perm/', include('perm.urls')),
+    path('api/resource/',include('resource.urls')),
+    path('api/audit/',include('audit.urls'))
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+websocket_urlpatterns = [
+    path('api/terminal/',URLRouter(terminal))
+]

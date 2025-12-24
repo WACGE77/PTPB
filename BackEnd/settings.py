@@ -145,19 +145,22 @@ ASGI_APPLICATION = 'BackEnd.asgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-        #'NAME': 'E:/sqlite/db.sqlite3',
-    },
     # 'default': {
-    #     'ENGINE': 'django.db.backends.mysql',
-    #     'NAME': 'your_database_name',      # 数据库名
-    #     'USER': 'your_username',           # 用户名
-    #     'PASSWORD': 'your_password',       # 密码
-    #     'HOST': 'localhost',               # 主机
-    #     'PORT': '3306',                    # 端口
-    # }
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': BASE_DIR / 'db.sqlite3',
+    #     #'NAME': 'E:/sqlite/db.sqlite3',
+    # },
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'ptp',      # 数据库名
+        'USER': 'root',           # 用户名
+        'PASSWORD': '123456',       # 密码
+        'HOST': '127.0.0.1',               # 主机
+        'PORT': '3306',                    # 端口
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
+    }
 }
 
 
@@ -208,7 +211,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": datetime.timedelta(minutes=150),
+    "ACCESS_TOKEN_LIFETIME": datetime.timedelta(days=200),#minutes=15
     'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=7),
 }
 

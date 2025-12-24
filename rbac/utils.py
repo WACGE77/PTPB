@@ -2,9 +2,10 @@ import bcrypt
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from twisted.words.protocols.jabber.xmlstream import hashPassword
+from audit.Logging import OperationLog
 
 phone_pattern = r"^1[3-9]\d{9}$"
-
+mail_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
 def encrypt_password(password: str) -> str:
     """
     使用 bcrypt 对密码进行哈希
@@ -57,9 +58,14 @@ def get_token_response(user,data,code = 200) -> Response:
     return response
 
 #更新密码用
-def reset_password_response(serializer) -> Response:
+def reset_password_response(serializer,request) -> Response:
+    userobj = serializer.context.get('user', "")
+    account = getattr(userobj, 'account', "")
+    opera = f'重置{account}密码'
     if serializer.is_valid():
         serializer.save()
+        OperationLog.operation(request, opera, True)
         return Response({'code': 200, 'msg': 'success'}, status=200)
+    OperationLog.operation(request, opera, False)
     return Response({'code': 400, 'msg': 'failure', 'error_msg': serializer.errors}, status=200)
 

@@ -38,7 +38,7 @@ class Role(models.Model):
     protected = models.BooleanField(default=False)
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
-
+    perms = models.ManyToManyField('rbac.Permission',through='perm.BaseAuth',related_name='roles')
     create_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='create_roles')
     update_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='update_roles')
 
@@ -51,7 +51,7 @@ class UserRole(models.Model):
 class Permission(models.Model):
     #生产固定表
     id = models.AutoField(primary_key=True)
-    scope = models.CharField(max_length=10)
+    scope = models.CharField(max_length=15)
     object = models.CharField(max_length=10)
     action = models.CharField(max_length=10)
     code = models.CharField(max_length=30, unique=True)

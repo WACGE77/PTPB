@@ -1,12 +1,15 @@
-from cryptography.fernet import InvalidToken
+
 from rest_framework import permissions
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.tokens import AccessToken
-from .models import BaseAuth, ResourceAuth
 
+from perm.utils import validate_resource_permission, validate_vorcher_permission
+from .models import BaseAuth, ResourceAuth,ResourceVoucherAuth
+from rbac.utils import get_client_ip
 from rbac.models import User
 from functools import wraps
+from resource.models import Resource
 
 
 def permission_required(code):
@@ -26,55 +29,73 @@ class TokenAuthorization(BaseAuthentication):
             token = AccessToken(token_str)
             user_id = token.payload['user_id']
             user = User.objects.get(id=user_id)
-            return user, token
+            ip = get_client_ip(request)
+            info = {
+                'ip': ip,
+                "token":token
+            }
+            return user, info
         except Exception as e:
             return None
 
 class TokenPermission(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return request.user.is_authenticated
-
-class BasePermission(permissions.BasePermission):
-
-    def has_permission(self, request, view):
+    def auth(self,request,view):
         if not request.user.is_authenticated:
-            return False
+            raise PermissionDenied(detail='未登录',code=403)
+        return True
+    
+    def has_permission(self, request, view):
+        return self.auth(request,view)
+
+class BasePermission(TokenPermission):
+    
+    def get_code(self, view):
         permission_code = None
-        if hasattr(view, 'action') and view.action:
-            if getattr(view, 'permission_mapping', None):
-                permission_code = view.permission_mapping.get(view.action, None)
-            if not permission_code:
-                method = getattr(view, view.action, None)
-                if method:
-                    permission_code = getattr(method, 'permission_code', None)
-
-        if not permission_code:
-            permission_code = getattr(view, 'permission_code', None)
-
-        if permission_code and BaseAuth.objects.filter(permission__code=permission_code,role__in=request.user.roles.all()).exists():
-            return True
-        else:
-            raise PermissionDenied(detail='您无当前权限',code=403)
-
-class ResourcePermission(permissions.BasePermission):
-
-    def has_permission(self, request, view):
-        if not request.user.is_authenticated:
-            return False
-        if hasattr(view, 'action') and view.action and view.permission_mapping:
+        if hasattr(view,'action') and view.action and view.permission_mapping:
             permission_code = view.permission_mapping.get(view.action, None)
         else:
-            permission_code = view.permission_code
-        base = BaseAuth.objects.filter(permission__code=permission_code,role__in=request.user.roles.all())
-        if base.exists():
-            return True
-        resource_id = request.data.get('resource_id',0)
-        adv = ResourceAuth.objects.filter(
-            role__in=request.user.roles,
-            permission__code=permission_code,
-            resource__id=resource_id,
-        )
-        if resource_id and adv.exists():
-            return True
-        else:
+            permission_code = getattr(view, 'permission_code', None)
+        if not permission_code:
+            raise PermissionDenied(detail='代码写错了',code=403)
+        return permission_code
+
+    def auth(self,request, view):
+        super().auth(request, view)
+        permission_code = self.get_code(view)
+        auth = BaseAuth.objects.filter(permission__code=permission_code,role__in=request.user.roles.all()).exists()
+        if not auth:
+            raise PermissionDenied(detail='您无当前权限访问',code=403)
+        return True,permission_code
+    
+    def has_permission(self, request, view):
+        self.auth(request,view)
+        return True
+
+class ResourcePermission(BasePermission):
+    def auth(self,request, view):
+        permission_code = self.get_code(view)
+        id = request.data.get('resource_id',None)
+        if not id or not Resource.objects.filter(id=id).exists():
+            raise PermissionDenied(detail='无该资源',code=403)
+        roles_id = request.user.roles.values('id')
+        if not validate_resource_permission(request.user,roles_id,id,permission_code):
             raise PermissionDenied(detail='您无当前权限',code=403)
+            
+    def has_permission(self, request, view):
+        self.auth(request,view)
+        return True
+        
+class ResourceVoucherPermission(BasePermission):
+
+    def auth(self,request, view):
+        permission_code = self.get_code(view)
+        id = request.data.get('vorcher_id',None)
+        if not id:
+            raise PermissionDenied(detail='参数错误',code=403)
+        roles = request.user.roles.values('id')
+        if not validate_vorcher_permission(request.user,roles,id,permission_code):
+            raise PermissionDenied(detail='您无当前权限',code=403)
+            
+    def has_permission(self, request, view):
+        self.auth(request,view)
+        return True

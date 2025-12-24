@@ -1,8 +1,8 @@
 import re
 
 from rest_framework import serializers
-from .models import User,Role
-from .utils import verify_password, encrypt_password, phone_pattern
+from .models import User,Role,Permission
+from .utils import verify_password, encrypt_password, phone_pattern, mail_pattern
 
 
 class LoginSerializer(serializers.Serializer):
@@ -68,6 +68,18 @@ class UserModifySerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['email','name','phone_number','remark']
+        extra_kwargs = {
+            'email': {
+                'validators': []
+            }
+        }
+    
+    def validate_email(self,value):
+        if not re.match(mail_pattern,value):
+            raise serializers.ValidationError('非法邮箱格式')
+        if User.objects.filter(email=value).exists():
+           raise serializers.ValidationError('邮箱已被使用') 
+        return value
 
     def validate_phone_number(self,value):
         if not re.match(phone_pattern,value):
@@ -79,7 +91,29 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id','account','name','email','status','phone_number','create_date','remark']
 
+class IDListSerializer(serializers.Serializer):
+    id_list = serializers.ListField(
+        child=serializers.IntegerField(),
+        allow_empty=True,
+        error_messages={
+            'invalid':'ID列表格式错误'
+        }
+    )
+
+class RoleIDListSerializer(IDListSerializer):
+    def validate_id_list(self,value):
+        exist = Role.objects.filter(id__in=value).values_list('id',flat=True)
+        missing = set(value) - set(exist)
+        if missing:
+            raise serializers.ValidationError(f'角色ID不存在: {",".join([str(i) for i in missing])}')
+        return value
+    
 class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
         fields = ['id','name','code','description']
+    
+class PermissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Permission
+        fields = '__all__'

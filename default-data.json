@@ -115,25 +115,14 @@
     "fields": {
       "scope": "permissions",
       "object": "role",
-      "action": "create",
-      "code": "permissions.role.create",
-      "name": "添加授权"
+      "action": "update",
+      "code": "permissions.role.update",
+      "name": "修改授权"
     }
   },
   {
     "model": "rbac.Permission",
     "pk": 12,
-    "fields": {
-      "scope": "permissions",
-      "object": "role",
-      "action": "delete",
-      "code": "permissions.role.delete",
-      "name": "删除授权"
-    }
-  },
-  {
-    "model": "rbac.Permission",
-    "pk": 13,
     "fields": {
       "scope": "resource",
       "object": "self",
@@ -144,7 +133,7 @@
   },
   {
     "model": "rbac.Permission",
-    "pk": 14,
+    "pk": 13,
     "fields": {
       "scope": "resource",
       "object": "self",
@@ -155,7 +144,7 @@
   },
   {
     "model": "rbac.Permission",
-    "pk": 15,
+    "pk": 14,
     "fields": {
       "scope": "resource",
       "object": "self",
@@ -166,7 +155,7 @@
   },
   {
     "model": "rbac.Permission",
-    "pk": 16,
+    "pk": 15,
     "fields": {
       "scope": "resource",
       "object": "self",
@@ -177,13 +166,24 @@
   },
   {
     "model": "rbac.Permission",
+    "pk": 16,
+    "fields": {
+      "scope": "resource",
+      "object": "voucher",
+      "action": "create",
+      "code": "resource.voucher.create",
+      "name": "创建凭证"
+    }
+  },
+  {
+    "model": "rbac.Permission",
     "pk": 17,
     "fields": {
       "scope": "resource",
-      "object": "account",
-      "action": "create",
-      "code": "resource.account.create",
-      "name": "创建资源账户"
+      "object": "voucher",
+      "action": "delete",
+      "code": "resource.voucher.delete",
+      "name": "删除凭证"
     }
   },
   {
@@ -191,10 +191,10 @@
     "pk": 18,
     "fields": {
       "scope": "resource",
-      "object": "account",
-      "action": "delete",
-      "code": "resource.account.delete",
-      "name": "删除资源账户"
+      "object": "voucher",
+      "action": "update",
+      "code": "resource.voucher.update",
+      "name": "修改凭证"
     }
   },
   {
@@ -202,26 +202,15 @@
     "pk": 19,
     "fields": {
       "scope": "resource",
-      "object": "account",
-      "action": "update",
-      "code": "resource.account.update",
-      "name": "修改资源账户"
+      "object": "voucher",
+      "action": "read",
+      "code": "resource.voucher.read",
+      "name": "查看凭证"
     }
   },
   {
     "model": "rbac.Permission",
     "pk": 20,
-    "fields": {
-      "scope": "resource",
-      "object": "account",
-      "action": "read",
-      "code": "resource.account.read",
-      "name": "查看资源账户"
-    }
-  },
-  {
-    "model": "rbac.Permission",
-    "pk": 21,
     "fields": {
       "scope": "audit",
       "object": "session",
@@ -232,7 +221,7 @@
   },
   {
     "model": "rbac.Permission",
-    "pk": 22,
+    "pk": 21,
     "fields": {
       "scope": "audit",
       "object": "operation",
@@ -243,7 +232,7 @@
   },
   {
     "model": "rbac.Permission",
-    "pk": 23,
+    "pk": 22,
     "fields": {
       "scope": "user",
       "object": "profile",
@@ -254,7 +243,7 @@
   },
   {
     "model": "rbac.Permission",
-    "pk": 24,
+    "pk": 23,
     "fields": {
       "scope": "user",
       "object": "profile",
@@ -495,15 +484,6 @@
     "fields": {
         "role": 1,
         "permission": 23,
-        "create_date": "2025-01-01T00:00:00Z"
-    }
-  },
-  {
-    "model": "perm.BaseAuth",
-    "pk": 24,
-    "fields": {
-        "role": 1,
-        "permission": 24,
         "create_date": "2025-01-01T00:00:00Z"
     }
   }
