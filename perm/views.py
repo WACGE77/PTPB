@@ -44,7 +44,7 @@ class BaseAuthManageViewSet(ViewSet):
             OperaLogging.operation(request, opera, status=False)
             return Response({'code':400, 'msg': '参数错误', 'errors': serializer.errors}, status=400)
         role = serializer.context.get('role')
-        role.permissions.set(perms)
+        role.perms.set(perms)
         OperaLogging.operation(request, opera, status=True)
         return Response({'code':200, 'msg': '修改成功'}, status=200)
 
