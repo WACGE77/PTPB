@@ -21,15 +21,14 @@ class LoginView(APIView):
     def post(self, request):
         login_serializer = LoginSerializer(data=request.data)
         if not login_serializer.is_valid():
-            return Response({'code':400, 'msg': login_serializer.errors}, status=400)
-        
+            return Response({'code':400, 'msg': login_serializer.errors}, status=200)
+  
         account = login_serializer.validated_data.get('account')
         password = login_serializer.validated_data.get('password')
-
         try:
             user = User.objects.get(account=account)
         except User.DoesNotExist:
-            return Response({'code':400, 'msg': '用户不存在'}, status=400)
+            return Response({'code':400, 'msg': '用户不存在'}, status=200)
 
         if verify_password(password, user.password):
             res = get_token_response(user,{'code':200, 'msg': '登录成功'})
@@ -37,7 +36,7 @@ class LoginView(APIView):
             return res
         else:
             OperaLogging.login(get_client_ip(request), user, 'failed')
-            return Response({'code':400, 'msg': '密码错误'}, status=400)
+            return Response({'code':400, 'msg': '密码错误'}, status=200)
 
 class LogoutView(APIView):
     def post(self, request):

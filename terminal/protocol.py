@@ -117,6 +117,10 @@ class AsyncSSHClient:
             pass
         finally:
             self._connected = False
+            await self._on_disconnect()
+            
+    async def set_on_disconnect(self,callback):
+        self._on_disconnect = callback
 
     def set_recv_callback(self, callback):
         """设置接收数据的回调函数（必须是普通函数或可调用对象）"""

@@ -1,3 +1,4 @@
+import asyncio
 import json
 from asgiref.sync import sync_to_async
 from rbac.models import User
@@ -28,16 +29,19 @@ class SSHConsumer(AsyncWebsocketConsumer):
         await self.accept()
     
     async def disconnect(self, code):
-        if self.is_auth:
-            await sync_to_async(OperaLogging.session)(self.user,self.ip,self.resource,"close",self.log)
-        else:
-            await sync_to_async(OperaLogging.session)(self.user,self.ip,self.resource,"faild")
+        try:
+            if self.is_auth:
+                await sync_to_async(OperaLogging.session)(self.user,self.ip,self.resource,"close",self.log)
+            else:
+                await sync_to_async(OperaLogging.session)(self.user,self.ip,self.resource,"faild")
+        except Exception:
+            pass
         return await super().disconnect(code)
     
     async def receive(self,text_data):
         try:
             data = json.loads(text_data)
-            message = data['message']
+            message = data.get('message',None)
         except Exception:
             await self.send("传参错误,请重试")
             return
@@ -63,7 +67,7 @@ class SSHConsumer(AsyncWebsocketConsumer):
             timeout=10,
             delay=0.5
         )
-        self.session.set_on_disconnect(self.close)
+        await self.session.set_on_disconnect(self.close)
     async def auth(self,data):
         """
         auth 的 Docstring
@@ -92,7 +96,7 @@ class SSHConsumer(AsyncWebsocketConsumer):
                     await self.close()
                     return
                 self.log = await sync_to_async(OperaLogging.session)(self.user,self.ip,self.resource,"active")
-                await self.send(text_data=json.dumps({"code":200,"status": "success", "msg": "认证成功"}))
+                #await self.send(text_data=json.dumps({"code":200,"status": "success", "msg": "认证成功"}))
             else:
                 await self.send(text_data=json.dumps({"code":403,"error": "无权限"}))
                 await self.close()

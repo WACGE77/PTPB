@@ -14,12 +14,15 @@ class OperaLogging:
     def session(user,ip,resource,status,sessionLog=None):
         if sessionLog:
             sessionLog.status = status
-            return sessionLog.save()
-        return SessionLog(
+            sessionLog.save()
+            return sessionLog
+        sessionLog = SessionLog(
             user = user,
             ip = ip,
             resource = resource,
             status=status
-        ).save()
+        )
+        sessionLog.save()
+        return sessionLog
 
         
