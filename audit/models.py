@@ -24,9 +24,9 @@ class SessionLog(models.Model):
     end_time = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20)  # e.g., 'active', 'closed', 'failed' 0,1,2
     user = models.ForeignKey('rbac.User', on_delete=models.CASCADE)
-    status = models.CharField(max_length=10,)
     ip = models.GenericIPAddressField()
     resource = models.ForeignKey('resource.Resource', on_delete=models.CASCADE, related_name='session_records')
+    voucher = models.ForeignKey('resource.ResourceVoucher', on_delete=models.CASCADE, related_name='session_records')
     
 class ShellOperationLog(models.Model):
     id = models.AutoField(primary_key=True)

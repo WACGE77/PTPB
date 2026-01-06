@@ -74,7 +74,7 @@ class BasePermission(TokenPermission):
 class ResourcePermission(BasePermission):
     def auth(self,request, view):
         permission_code = self.get_code(view)
-        id = request.data.get('resource_id',None)
+        id = request.data.get('id',None)
         if not id or not Resource.objects.filter(id=id).exists():
             raise PermissionDenied(detail='无该资源',code=403)
         roles_id = request.user.roles.values('id')
@@ -89,7 +89,7 @@ class ResourceVoucherPermission(BasePermission):
 
     def auth(self,request, view):
         permission_code = self.get_code(view)
-        id = request.data.get('vorcher_id',None)
+        id = request.data.get('id',None)
         if not id:
             raise PermissionDenied(detail='参数错误',code=403)
         roles = request.user.roles.values('id')
@@ -99,3 +99,4 @@ class ResourceVoucherPermission(BasePermission):
     def has_permission(self, request, view):
         self.auth(request,view)
         return True
+        

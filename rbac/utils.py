@@ -2,7 +2,7 @@ import bcrypt
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from twisted.words.protocols.jabber.xmlstream import hashPassword
-from audit.Logging import OperationLog
+from audit.Logging import OperaLogging
 
 phone_pattern = r"^1[3-9]\d{9}$"
 mail_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
@@ -64,8 +64,8 @@ def reset_password_response(serializer,request) -> Response:
     opera = f'重置{account}密码'
     if serializer.is_valid():
         serializer.save()
-        OperationLog.operation(request, opera, True)
+        OperaLogging.operation(request, opera, True)
         return Response({'code': 200, 'msg': 'success'}, status=200)
-    OperationLog.operation(request, opera, False)
+    OperaLogging.operation(request, opera, False)
     return Response({'code': 400, 'msg': 'failure', 'error_msg': serializer.errors}, status=200)
 

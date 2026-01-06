@@ -63,7 +63,7 @@ class RoleBindManageViewSet(ViewSet):
     def get_role(self,request,pk):
         #/perm/role-bind/pk/get-role/
         user = get_object_or_404(User, id=pk)
-        roles = user.roles.all()
+        roles = Role.objects.all()
         all_roles = RoleSerializer(roles,many=True).data
         user_role = UserRoleSerializer(user).data
         return Response({'code':200, 'msg': '查询成功', 'data': {'all_roles': all_roles, 'user': user_role}}, status=200)

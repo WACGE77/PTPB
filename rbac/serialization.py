@@ -57,12 +57,14 @@ class UserAddSerializer(serializers.ModelSerializer):
         model = User
         fields = ['account', 'password', 'email','name']
 
+
     def save(self,**kwargs):
         account = self.validated_data.get('account')
         password = encrypt_password(self.validated_data.get('password'))
         email = self.validated_data.get('email')
         name = self.validated_data.get('name',account)
-        User.objects.create(account=account,password=password,email=email,name=name)
+        user = User.objects.create(account=account,password=password,email=email,name=name)
+        user.roles.add(2)
 
 class UserModifySerializer(serializers.ModelSerializer):
     class Meta:
@@ -77,7 +79,10 @@ class UserModifySerializer(serializers.ModelSerializer):
     def validate_email(self,value):
         if not re.match(mail_pattern,value):
             raise serializers.ValidationError('非法邮箱格式')
-        if User.objects.filter(email=value).exists():
+        query = User.objects.filter(email=value)
+        if self.instance:
+            query = query.exclude(id=self.instance.id)
+        if query.exists():
            raise serializers.ValidationError('邮箱已被使用') 
         return value
 
@@ -89,7 +94,7 @@ class UserModifySerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id','account','name','email','status','phone_number','create_date','remark']
+        fields = ['id','account','name','email','status','phone_number','create_date','remark','protected']
 
 class IDListSerializer(serializers.Serializer):
     id_list = serializers.ListField(
@@ -111,7 +116,7 @@ class RoleIDListSerializer(IDListSerializer):
 class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
-        fields = ['id','name','code','description']
+        fields = ['id','name','code','description','create_date','protected']
     
 class PermissionSerializer(serializers.ModelSerializer):
     class Meta:

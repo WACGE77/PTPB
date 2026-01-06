@@ -24,7 +24,7 @@ class Resource(models.Model):
             models.CheckConstraint(
                 condition = (
                     models.Q(ipv4_address__isnull = False,ipv6_address__isnull=True) |
-                    models.Q(ipv6_address__isnull = True,ipv4_address__isnull=False)
+                    models.Q(ipv6_address__isnull = False,ipv4_address__isnull=True)
                 ),
                 name='resource_exactly_one_ip'
             )
@@ -48,7 +48,7 @@ class ResourceVoucher(models.Model):
             models.CheckConstraint(
                 condition = (
                     models.Q(password__isnull = False,private_key__isnull=True) |
-                    models.Q(private_key__isnull = True,password__isnull=False)
+                    models.Q(private_key__isnull = False,password__isnull=True)
                 ),
                 name='%(class)s_exactly_one_of_password_or_private_key'
             )

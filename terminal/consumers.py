@@ -1,5 +1,7 @@
 import asyncio
 import json
+from django.utils import timezone
+from urllib.parse import parse_qs
 from asgiref.sync import sync_to_async
 from rbac.models import User
 from resource.models import Resource,ResourceVoucher
@@ -14,26 +16,33 @@ class SSHConsumer(AsyncWebsocketConsumer):
     #ws://106.13.85.137:8000/api/terminal/ssh/
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.is_auth = False
+        self.handele = None
         self.session = None
         self.log = None
-        self._closed = False
+        self.ip = None
+        self.resource = None
+        self.voucher = None
+        self.queue = asyncio.Queue()
+    
     async def close(self):
-        if self._closed:
-            return
         if self.session:
             self.session.close()
+        if self.handele:
+            self.handle.cancel()
         await super().close()
 
     async def connect(self):
+        self.ip = get_ws_client_ip(self.scope)
+        self.handle = asyncio.create_task(self._data_handle())
         await self.accept()
-    
+
     async def disconnect(self, code):
         try:
-            if self.is_auth:
-                await sync_to_async(OperaLogging.session)(self.user,self.ip,self.resource,"close",self.log)
+            if self.session and self.session.get_status:
+                self.log.end_time = timezone.now()
+                await self.session_log(self.user,self.ip,self.resource,self.voucher,"close",self.log)
             else:
-                await sync_to_async(OperaLogging.session)(self.user,self.ip,self.resource,"faild")
+                await self.session_log(self.user,self.ip,self.resource,self.voucher,"faild")
         except Exception:
             pass
         return await super().disconnect(code)
@@ -41,16 +50,58 @@ class SSHConsumer(AsyncWebsocketConsumer):
     async def receive(self,text_data):
         try:
             data = json.loads(text_data)
-            message = data.get('message',None)
         except Exception:
             await self.send("传参错误,请重试")
             return
+        await self.queue.put(data)
+        
+   
 
-        if not self.is_auth:
-            await self.auth(data)
+    async def _data_handle(self):
+        try:
+            while True:
+                item = await self.queue.get()
+                type_ = item.get('type',None)
+                data = item.get('data')
+                # print(type_)
+                # print(data)
+                # print('--------------------------------------------')
+                if type_ == 0 and not self.session:
+                    try:
+                        await self.shellInit(data)
+                    except Exception as e:
+                        await self.send(f"连接失败:{str(e)}")
+                        self.close()
+                        return
+                elif type_ == 1:
+                    await self.session.resize(cols=data.get('cols'),rows=data.get('rows'))  
+                elif type_ == 2:
+                    await self.session.send(data)
+                
+        except asyncio.CancelledError:
+            while not self.queue.empty():
+                try:
+                    item = self.queue.get_nowait()
+                    self.queue.task_done()
+                except asyncio.QueueEmpty:
+                    break
+        finally:
+            self.handele = None
+
+            
+            
+    async def shellInit(self,data):
+        token = data.get('token')
+        resource_id = data.get('resource_id')
+        voucher_id = data.get('voucher_id')
+        if not all([token,resource_id,voucher_id]):
+            self.close()
             return
-        await self.session.send(message)
+        if await self.auth(token,resource_id,voucher_id):  
+            await self.create_session(self.resource,self.voucher)
 
+    async def resize(self,option):
+        await self.session.resize(cols=option.get('cols'),rows=option.get('rows'))
 
     async def create_session(self,resource,voucher):
         hostname = resource.ipv4_address if resource.ipv4_address else resource.ipv6_address
@@ -59,6 +110,7 @@ class SSHConsumer(AsyncWebsocketConsumer):
         port = getattr(resource, 'port', 22)
         self.session = AsyncSSHClient()
         self.session.set_recv_callback(self.send)
+        self.session.set_on_disconnect(self.close)
         await self.session.connect(
             hostname=hostname,
             username=username,
@@ -67,49 +119,18 @@ class SSHConsumer(AsyncWebsocketConsumer):
             timeout=10,
             delay=0.5
         )
-        await self.session.set_on_disconnect(self.close)
-    async def auth(self,data):
-        """
-        auth 的 Docstring
-        :param data: {
-            "token":str,
-            "resource_id:int,
-            "voucher_id":int,
-            "message":Object
-        }
-        """
-        try:
-            token = data.get("token")
-            resource_id = data.get("resource_id")
-            voucher_id = data.get("voucher_id")
-            if not all([token, resource_id, voucher_id]):
-                raise ValueError("参数错误")
-            user_id = await self._verify_token(token)
-            self.user,has_perm,self.resource,voucher = await self._check_permissions(user_id, resource_id, voucher_id)
-            if has_perm:
-                self.is_auth = True
-                self.ip = get_ws_client_ip(self.scope)
-                try:
-                    await self.create_session(self.resource,voucher)
-                except Exception as e:
-                    await self.send(text_data=json.dumps({"code":400,"status": "fail", "msg": "连接超时"}))
-                    await self.close()
-                    return
-                self.log = await sync_to_async(OperaLogging.session)(self.user,self.ip,self.resource,"active")
-                #await self.send(text_data=json.dumps({"code":200,"status": "success", "msg": "认证成功"}))
-            else:
-                await self.send(text_data=json.dumps({"code":403,"error": "无权限"}))
-                await self.close()
-
-        except Exception as e:
-            await self.send(text_data=json.dumps({"code":403,"error": "认证失败"}))
-            await self.close()
-    
+        self.log = await self.session_log(self.user,self.ip,self.resource,self.voucher,"active")
+              
+    async def auth(self,token,resource_id,voucher_id):
+        user_id = await self._verify_token(token)
+        has_perm,self.user,self.resource,self.voucher = await self._check_permissions(user_id, resource_id, voucher_id)
+        return has_perm
+           
     @database_sync_to_async
     def _verify_token(self, token_str):
         """同步方法：验证 JWT 并返回 user_id"""
         try:
-            access = AccessToken(token_str)  # ← simplejwt 是同步的，必须放这里
+            access = AccessToken(token_str)
             return access.payload["user_id"]
         except Exception:
             raise ValueError("token错误")
@@ -134,7 +155,11 @@ class SSHConsumer(AsyncWebsocketConsumer):
                 ResourceVoucherAuth.objects.filter(role__in=roles, permission__code='resource.voucher.read', voucher=voucher).exists() or
                 ResourceVoucherAuth.objects.filter(user=user, permission__code='resource.voucher.read', voucher=voucher).exists()
             )
-            return user,resource_perm and voucher_perm,resource,voucher
+            return resource_perm and voucher_perm,user,resource,voucher
 
         except Exception:
             return None
+        
+    @database_sync_to_async
+    def session_log(self,user,ip,resource,voucher,status,log = None):
+        return OperaLogging.session(user,ip,resource,voucher,status,log)

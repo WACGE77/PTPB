@@ -3,13 +3,13 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from rest_framework.views import APIView
 from rest_framework.decorators import action
+from PTPUtils.public import get_page
 from perm.authentication import ResourcePermission,BasePermission,TokenPermission,ResourceVoucherPermission
 from .serialization import ResourceSerializer,ResourceVoucherSerializer,ResourceBindVoucherSerializer
 from audit.Logging import OperaLogging
 from perm.utils import protect_perms, validate_resource_permission
 from .models import Resource,ResourceVoucher
 from perm.models import BaseAuth,ResourceVoucherAuth,ResourceAuth
-from django.core.paginator import Paginator
 from django.db.models import Q
 # Create your views here.
 
@@ -46,15 +46,16 @@ class ResourceViewSet(ViewSet):
     )
     def del_resource(self, request):
         # /resource/resource/delete/
-        id = request.data.get('resource_id','')
+        id = request.data.get('id','')
         opera = f'删除资源{id}'
         try:
             Resource.objects.filter(id=id).delete()
-        except Exception:
+        except Exception as e:
+            print(e)
             OperaLogging.operation(request,opera,False)
             return Response({'code':400, 'msg': '删除失败,参数错误'}, status=400)
         OperaLogging.operation(request,opera)
-        return Response({'code':200, 'msg': '删除成功'}, status=400)
+        return Response({'code':200, 'msg': '删除成功'}, status=200)
     
     @action(
         methods=['post'],
@@ -63,7 +64,7 @@ class ResourceViewSet(ViewSet):
     )
     def mod_resource(self, request):
         # /resource/resource/modify/
-        resource_id = request.data.get('resource_id',0)
+        resource_id = request.data.get('id',0)
         if not resource_id:
             return Response({'code':400, 'msg': '参数错误'}, status=400)
         instance = get_object_or_404(Resource, id=resource_id)
@@ -74,6 +75,7 @@ class ResourceViewSet(ViewSet):
             OperaLogging.operation(request,opera)
             return Response({'code':200, 'msg': '修改成功'}, status=200)
         OperaLogging.operation(request,opera,False)
+        
         return Response({'code':400, 'msg': serializer.errors}, status=400)
     
     @action(
@@ -94,13 +96,18 @@ class ResourceViewSet(ViewSet):
             resource = resource.filter(
                 resource_authorizations__permission__code = 'resource.self.read'
             )
-        page_size = request.data.get('page_size',10)
-        page_num = request.data.get('page_num',1)
-        paginator = Paginator(resource.distinct(),page_size)
-        page = paginator.page(page_num)
+        if request.data.get('all',False):
+            page = resource
+            total = resource.count()
+        else:
+            page,total = get_page(request,resource)
         try:
-            data = ResourceSerializer(page.object_list,many=True).data
-        except Exception:
+            resources = ResourceSerializer(page,many=True).data
+            data = {
+                'total':total,
+                'resources':resources
+            }
+        except Exception as e:
             return Response({'code':400, 'msg': '查询失败'}, status=400)
         return Response({'code':200, 'data':data, 'msg': 'sucssed'}, status=200)
 
@@ -122,9 +129,9 @@ class ResourceVoucherViewSet(ViewSet):
         # /resource/voucher/add/
         obj = request.data.get('code','')
         opera = f'添加凭证{obj}'
-        serializer = ResourceVoucherSerializer(data=request.data)
+        serializer = ResourceVoucherSerializer(data=request.data,context={'request': request})
         if serializer.is_valid():
-            ins = serializer.save(create_user=request.user)
+            ins = serializer.save()
             protect_perms(request.user,ins,ResourceVoucherAuth,'voucher_all')
             resource_id = serializer.validated_data.get('resource_id',None)
             if resource_id:
@@ -135,7 +142,7 @@ class ResourceVoucherViewSet(ViewSet):
             OperaLogging.operation(request,opera)
             return Response({'code':200, 'msg': 'sucssed'}, status=200)
         OperaLogging.operation(request,opera,False)
-        return Response({'code':400, 'msg': serializer.errors}, status=400)
+        return Response({'code':400, 'msg': serializer.errors}, status=200)
 
     @action(
         methods=['post'],
@@ -144,7 +151,7 @@ class ResourceVoucherViewSet(ViewSet):
     )
     def del_resourcevoucher(self, request):
         # /resource/voucher/delete/
-        id = request.data.get('vorcher_id','')
+        id = request.data.get('id','')
         opera = f'删除凭证{id}'
         try:
             count,_ = ResourceVoucher.objects.filter(id=id).delete()
@@ -163,11 +170,11 @@ class ResourceVoucherViewSet(ViewSet):
     )
     def mod_resourcevoucher(self, request):
         # /resource/voucher/modify/
-        resource_id = request.data.get('voucher_id',0)
-        if not id:
+        voucher_id = request.data.get('id',0)
+        if not voucher_id:
             return Response({'code':400, 'msg': '参数错误'}, status=400)
-        instance = get_object_or_404(ResourceVoucher, id=resource_id)
-        opera = f'修改凭证{id}'
+        instance = get_object_or_404(ResourceVoucher, id=voucher_id)
+        opera = f'修改凭证{voucher_id}'
         serializer = ResourceVoucherSerializer(instance,data = request.data,partial=True)
         if serializer.is_valid():
             serializer.save()
@@ -186,20 +193,28 @@ class ResourceVoucherViewSet(ViewSet):
         # /resource/voucher/list/
         voucher = ResourceVoucher.objects.all()
         roles = request.user.roles.all()
+        key = request.data.get('key',None)
+        if key:
+            voucher = voucher.filter(code__icontains=key)
         if not BaseAuth.objects.filter(permission__code='resource.voucher.read',role__in=roles).exists():
             voucher = voucher.filter(
-                Q(resource_authorizations__user=request.user) | 
-                Q(resource_authorizations__role__in=roles)
+                Q(account_authorizations__user=request.user) | 
+                Q(account_authorizations__role__in=roles)
             )
             voucher = voucher.filter(
-                resource_authorizations__permission__code = 'resource.voucher.read'
+                account_authorizations__permission__code = 'resource.voucher.read'
             )
-        page_size = request.data.get('page_size',10)
-        page_num = request.data.get('page_num',1)
-        paginator = Paginator(voucher.distinct(),page_size)
-        page = paginator.page(page_num)
+        if request.data.get('all',False):
+            page = voucher
+            total = voucher.count()
+        else:
+            page,total=get_page(request,voucher)
         try:
-            data = ResourceVoucherSerializer(page.object_list,many=True).data
+            vouchers = ResourceVoucherSerializer(page,many=True).data
+            data = {
+                'total':total,
+                'vouchers':vouchers
+            }
         except Exception:
             return Response({'code':400, 'msg': '查询失败'}, status=400)
         return Response({'code':200, 'data':data, 'msg': 'sucssed'}, status=200)
@@ -209,12 +224,12 @@ class ResourceBindVoucherView(APIView):
     permission_code = ''
     """
     {
-        'reource_id':int,
-        'vorcher_list':[int,]
+        'resource_id':int,
+        'voucher_list':[int,]
     }
     """
-    def post(self,request,view):
-        serializer = ResourceBindVoucherSerializer(request.data)
+    def post(self,request):
+        serializer = ResourceBindVoucherSerializer(data=request.data)
         if not serializer.is_valid():
             return Response({'code':400, 'msg': serializer.errors}, status=400)
         roles = request.user.roles.all()
@@ -244,9 +259,9 @@ class ResourceBindVoucherView(APIView):
                 }, status=400)
         resource = Resource.objects.get(id=resource_id)
         vouchers = resource.vouchers.values('id')
-        resource.vouchers.set(set(ids + vouchers))
+        vouchers_id_list = [voucher['id'] for voucher in vouchers]
         try:
-            resource.vouchers.add(ids)
+            resource.vouchers.set(set(ids + vouchers_id_list))
             return Response({'code':200, 'msg': '添加成功'}, status=200)
         except Exception:
             return Response({'code':400, 'msg':'操作错误,请重试'}, status=400)

@@ -119,7 +119,7 @@ class AsyncSSHClient:
             self._connected = False
             await self._on_disconnect()
             
-    async def set_on_disconnect(self,callback):
+    def set_on_disconnect(self,callback):
         self._on_disconnect = callback
 
     def set_recv_callback(self, callback):
@@ -131,20 +131,21 @@ class AsyncSSHClient:
             raise ConnectionError("SSH connection is not active.")
         self._process.stdin.write(data)
 
+    @property
     def get_status(self) -> bool:
         return self._connected
 
     async def resize(self, cols: int, rows: int):
         if not self._process or not self._connected:
             return
-
         try:
+
             await self._process.channel.change_terminal_size(
-                cols=cols,
-                rows=rows
+                width=cols,
+                height=rows
             )
         except Exception as e:
-            print("resize failed:", e)
+            pass
 
     async def close(self):
         self._connected = False

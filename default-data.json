@@ -257,8 +257,34 @@
     "pk": 1,
     "fields": {
       "name": "管理员",
-      "code": "administrator",
+      "code": "Administrator",
       "description": "超级管理员",
+      "status": true,
+      "protected": true,
+      "create_date": "2025-01-01T00:00:00Z",
+      "update_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "rbac.Role",
+    "pk": 2,
+    "fields": {
+      "name": "用户",
+      "code": "Client",
+      "description": "普通用户",
+      "status": true,
+      "protected": true,
+      "create_date": "2025-01-01T00:00:00Z",
+      "update_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "rbac.Role",
+    "pk": 3,
+    "fields": {
+      "name": "审计员",
+      "code": "Audit",
+      "description": "审计",
       "status": true,
       "protected": true,
       "create_date": "2025-01-01T00:00:00Z",
@@ -484,6 +510,42 @@
     "fields": {
         "role": 1,
         "permission": 23,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 24,
+    "fields": {
+        "role": 2,
+        "permission": 22,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 25,
+    "fields": {
+        "role": 2,
+        "permission": 23,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 26,
+    "fields": {
+        "role": 3,
+        "permission": 20,
+        "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 27,
+    "fields": {
+        "role": 3,
+        "permission": 21,
         "create_date": "2025-01-01T00:00:00Z"
     }
   }
