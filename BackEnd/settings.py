@@ -209,9 +209,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
-
+#minutes=15
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": datetime.timedelta(days=200),#minutes=15
+    "ACCESS_TOKEN_LIFETIME": datetime.timedelta(minutes=15),
     'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=7),
 }
 

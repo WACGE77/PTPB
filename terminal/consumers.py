@@ -18,6 +18,7 @@ class SSHConsumer(AsyncWebsocketConsumer):
         super().__init__(*args, **kwargs)
         self.handele = None
         self.session = None
+        self.connected_flag = False
         self.log = None
         self.ip = None
         self.resource = None
@@ -38,7 +39,7 @@ class SSHConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, code):
         try:
-            if self.session and self.session.get_status:
+            if self.connected_flag:
                 self.log.end_time = timezone.now()
                 await self.session_log(self.user,self.ip,self.resource,self.voucher,"close",self.log)
             else:
@@ -119,6 +120,7 @@ class SSHConsumer(AsyncWebsocketConsumer):
             timeout=10,
             delay=0.5
         )
+        self.connected_flag = True
         self.log = await self.session_log(self.user,self.ip,self.resource,self.voucher,"active")
               
     async def auth(self,token,resource_id,voucher_id):
