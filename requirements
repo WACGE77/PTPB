@@ -10,3 +10,4 @@ django-redis
 Pillow
 mysqlclient
 asyncssh
+scapy
