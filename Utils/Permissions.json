@@ -1,0 +1,48 @@
+{
+  "SYSTEM": {
+    "USER": {
+      "CREATE": "system.user.create",
+      "DELETE": "system.user.delete",
+      "UPDATE": "system.user.update",
+      "READ": "system.user.read"
+    },
+    "ROLE": {
+      "CREATE": "system.role.create",
+      "DELETE": "system.role.delete",
+      "UPDATE": "system.role.update",
+      "READ": "system.role.read"
+    },
+    "PERMISSIONS": {
+      "READ": "system.permissions.read",
+      "UPDATE": "system.permissions.update"
+    }
+  },
+  "RESOURCE": {
+    "SELF": {
+      "CREATE": "resource.self.create",
+      "DELETE": "resource.self.delete",
+      "UPDATE": "resource.self.update",
+      "READ": "resource.self.read"
+    },
+    "VOUCHER": {
+      "CREATE": "resource.voucher.create",
+      "DELETE": "resource.voucher.delete",
+      "UPDATE": "resource.voucher.update",
+      "READ": "resource.voucher.read"
+    }
+  },
+  "AUDIT": {
+    "SESSION": {
+      "READ": "audit.session.read"
+    },
+    "OPERATION": {
+      "READ": "audit.operation.read"
+    }
+  },
+  "USER": {
+    "PROFILE": {
+      "READ": "user.profile.read",
+      "UPDATE": "user.profile.update"
+    }
+  }
+}

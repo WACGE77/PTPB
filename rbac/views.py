@@ -1,20 +1,20 @@
-from django.shortcuts import get_object_or_404
-from django.db.models import Q
+from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.generics import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.viewsets import ViewSet
 from rest_framework_simplejwt.tokens import RefreshToken
-from PTPUtils.public import get_page
 from audit.Logging import OperaLogging
 from perm.authentication import BasePermission,TokenPermission
 from .models import User,Role,Permission
-from .serialization import LoginSerializer, ChangePasswordSerializer, ResetPasswordSerializer, \
-    UserAddSerializer, UserModifySerializer, UserSerializer,RoleSerializer,PermissionSerializer,\
-    RoleIDListSerializer,IDListSerializer
-from .utils import verify_password, get_client_ip, get_token_response, reset_password_response
+from .serialization import LoginSerializer, ChangePasswordSerializer, \
+    UserSerializer, PermissionSerializer, RoleSerializer, RolePermissionSerializer
 
-
+from Utils.modelViewSet import CURDModelViewSet
+from Utils.public import verify_password, get_token_response
+from Utils.Const import PERMISSIONS,METHODS,AUDIT,RESPONSE__200__SUCCESS, \
+    RESPONSE__400__FAILED, KEY, RESPONSE, ERRMSG
 # Create your views here.
 
 class LoginView(APIView):
@@ -22,30 +22,32 @@ class LoginView(APIView):
     def post(self, request):
         login_serializer = LoginSerializer(data=request.data)
         if not login_serializer.is_valid():
-            return Response({'code':400, 'msg': login_serializer.errors}, status=200)
+            return Response({**RESPONSE__400__FAILED, KEY.ERROR: login_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
   
         account = login_serializer.validated_data.get('account')
         password = login_serializer.validated_data.get('password')
-        try:
-            user = User.objects.get(account=account)
-            if user.status is False:
-                return Response({'code':400, 'msg': '用户被禁用'}, status=200)
-        except User.DoesNotExist:
-            return Response({'code':400, 'msg': '用户不存在'}, status=200)
 
-        if verify_password(password, user.password):
-            res = get_token_response(user,{'code':200, 'msg': '登录成功'})
-            OperaLogging.login(get_client_ip(request), user,'succeed')
-            return res
-        else:
-            OperaLogging.login(get_client_ip(request), user, 'failed')
-            return Response({'code':400, 'msg': '密码错误'}, status=200)
+        user = get_object_or_404(User, account=account)
+
+        if not user.status:
+            raise PermissionDenied(detail=ERRMSG.ERROR.DISABLED)
+
+        if not verify_password(password, user.password):
+            OperaLogging.login(request, 'failed')
+            return Response({
+                KEY.CODE: RESPONSE.P_401_UNAUTHORIZED,
+                KEY.ERROR: ERRMSG.ERR0R.PASSWORD
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        res = get_token_response(user,{**RESPONSE__200__SUCCESS})
+        OperaLogging.login(request,'succeed')
+        return res
 
 class LogoutView(APIView):
     permission_classes = [TokenPermission]
     def post(self, request):
         request.META['Authorization'] = None
-        response = Response({'code':200, 'msg': '退出成功'}, status=200)
+        response = Response(RESPONSE__200__SUCCESS, status=status.HTTP_200_OK)
         response.delete_cookie('refresh')
         return response
 
@@ -58,245 +60,77 @@ class RefreshView(APIView):
             user_id = token['user_id']
             user = User.objects.get(id=user_id)
         except Exception:
-            return Response({'code':400, 'msg': '无效的刷新请求'}, status=400)
-        return get_token_response(user,{'code': 200, 'msg': '刷新成功'})
+            return Response({**RESPONSE__400__FAILED}, status=401)
+        return get_token_response(user, {**RESPONSE__200__SUCCESS})
 
-class UserManagerViewSet(ViewSet):
+class UserManagerViewSet(CURDModelViewSet):
     permission_classes = [BasePermission]
+    model = User
+    serializer_class = UserSerializer
+    log_class = OperaLogging
+    protect_key = 'protected'
+    audit_class = AUDIT.CLASS.USER
     permission_mapping = {
-        "reset_password_self": "user.profile.update",
-        "reset_password": "system.user.update",
-        'add_user': 'system.user.create',
-        'del_user': 'system.user.delete',
-        'mod_user_self':"user.profile.update",
-        'mod_user':"system.user.update",
-        'list_user':"system.user.read",
-        'user_detail':"user.profile.read",
+        METHODS.CREATE: PERMISSIONS.SYSTEM.USER.CREATE,
+        METHODS.UPDATE: PERMISSIONS.SYSTEM.USER.UPDATE,
+        METHODS.DELETE: PERMISSIONS.SYSTEM.USER.DELETE,
+        METHODS.READ: PERMISSIONS.SYSTEM.USER.READ,
+        "reset_password":PERMISSIONS.USER.PROFILE.UPDATE,
+        "detail_":PERMISSIONS.USER.PROFILE.READ,
     }
-
-    @action(
-        methods=['post'],
-        detail=False,
-        url_path='reset-password',
-    )
-    def reset_password_self(self, request):
-        # /rbac/user/reset-password/
-        serializer = ChangePasswordSerializer(data=request.data, context={'user': request.user})
-        return reset_password_response(serializer,request)
-
-    @action(
-        methods=['post'],
-        detail=True,
-        url_path='reset-password',
-    )
-    def reset_password(self, request, pk):
-        # /rbac/user/{pk}/reset-password/
-        user = User.objects.get(id=pk)
-        serializer = ResetPasswordSerializer(data=request.data, context={'user': user})
-        return reset_password_response(serializer,request)
-
-    @action(
-        methods=['post'],
-        detail=False,
-        url_path='add',
-    )
-    def add_user(self,request):
-        #/rbac/user/add/
-        serializer = UserAddSerializer(data=request.data)
-        opera = f'添加用户{request.data.get('account')}'
+    @action(detail=False, methods=['post'],url_path='reset_password')
+    def reset_password(self, request):
+        serializer = ChangePasswordSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            OperaLogging.operation(request,opera)
-            return Response({'code':200, 'msg': '添加成功'}, status=200)
-        OperaLogging.operation(request, opera, False)
-        return Response({'code':400, 'msg': serializer.errors}, status=400)
+            return Response({**RESPONSE__200__SUCCESS}, status=status.HTTP_200_OK)
+        return Response({**RESPONSE__400__FAILED,KEY.ERROR:serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    @action(detail=False, methods=['get'],url_path='detail')
+    def detail_(self,request):
+        detail = UserSerializer(request.user).data
+        detail[KEY.IP] = request.auth.get('ip')
+        return Response({**RESPONSE__200__SUCCESS,KEY.SUCCESS:detail}, status=status.HTTP_200_OK)
 
-    @action(
-        methods=['post'],
-        detail=False,
-        url_path='delete',
-    )
-    def del_user(self,request):
-        #/rbac/user/delete
-        serializer = IDListSerializer(data=request.data)
-        ids = request.data.get('id_list', [])
-        opera = f'删除用户{ids}'
-        if not serializer.is_valid():
-            OperaLogging.operation(request, opera, False)
-            return Response({'code':400, 'msg': serializer.errors}, status=400)
 
-        count,_ = User.objects.filter(id__in=ids,protected=False).delete()
-        if count == 0:
-            OperaLogging.operation(request, opera, False)
-            return Response({'code':400, 'msg': '删除失败,没有符合条件的用户'}, status=400)
-        OperaLogging.operation(request, opera)
-        return Response({'code':200, 'msg': '删除成功','count':count}, status=200)
-
-    @action(
-        methods=['post'],
-        detail=False,
-        url_path='modify',
-    )
-    def mod_user_self(self,request):
-        #/rbac/user/modify
-        serializer = UserModifySerializer(request.user,data=request.data,partial=True)
-        opera = f'修改用户{request.user.account}'
-        if serializer.is_valid():
-            serializer.save()
-            OperaLogging.operation(request, opera)
-            return Response({'code':200, 'msg': '修改成功'}, status=200)
-        OperaLogging.operation(request, opera, False)
-        return Response({'code':400, 'msg': serializer.errors}, status=400)
-
-    @action(
-        methods=['post'],
-        detail=True,
-        url_path='modify',
-    )
-    def mod_user(self,request,pk):
-        #/rbac/user/pk/modify
-        user = User.objects.get(id=pk)
-        status = request.data.get('status',None)
-        serializer = UserModifySerializer(user,data=request.data,)
-        opera = f'修改用户{user.account}'
-        if serializer.is_valid():
-            if status and not user.protected:
-                serializer.save(status=status)
-            else:
-                serializer.save()
-            OperaLogging.operation(request, opera)
-            return Response({'code':200, 'msg': '修改成功'}, status=200)
-        OperaLogging.operation(request, opera, False)
-        return Response({'code':400, 'msg': serializer.errors}, status=400)
-    
-    @action(
-        methods=['post'],
-        detail=False,
-        url_path='list',
-    )
-    def list_user(self,request):
-        #/rbac/user/list/
-        try:
-            users = User.objects.all()
-            key = request.data.get('key',None)
-            if key:
-                users = users.filter(Q(name__icontains=key) | Q(account__icontains=key))
-            page,total = get_page(request,users)
-            userdata = UserSerializer(page,many=True).data
-            data = {'total':total,"users":userdata}
-        except Exception:
-            return Response({'code':400, 'msg': '参数错误'}, status=400)
-        return Response({'code':200, 'msg': '查询成功', 'data': data}, status=200)
-    
-    @action(
-        methods=['post'],
-        detail=False,
-        url_path='detail',
-    )
-    def user_detail(self,request):
-        #/rbac/user/detail/
-        data = UserSerializer(request.user).data
-        return Response({'code':200,'msg':'OK','data':data},status=200) 
-
-class RoleManagerViewSet(ViewSet): 
+class RoleManagerViewSet(CURDModelViewSet):
     permission_classes = [BasePermission]
+    model = Role
+    serializer_class = RoleSerializer
+    many_serializer_class = RolePermissionSerializer
+    protect_key = 'protected'
+    audit_class = AUDIT.CLASS.ROLE
+    log_class = OperaLogging
     permission_mapping = {
-        'add_role': 'system.role.create',
-        'del_role': 'system.role.delete',
-        'mod_role': 'system.role.update',
-        'list_role': 'system.role.read',
+        METHODS.CREATE: PERMISSIONS.SYSTEM.ROLE.CREATE,
+        METHODS.UPDATE: PERMISSIONS.SYSTEM.ROLE.UPDATE,
+        METHODS.DELETE: PERMISSIONS.SYSTEM.ROLE.DELETE,
+        METHODS.READ: PERMISSIONS.SYSTEM.ROLE.READ,
+        METHODS.READ_RELATION:PERMISSIONS.SYSTEM.PERMISSIONS.READ,
+        METHODS.EDIT_RELATION:PERMISSIONS.SYSTEM.PERMISSIONS.UPDATE,
     }
-    @action(
-        methods=['post'],
-        detail=False,
-        url_path='add',
-    )
-    def add_role(self,request):
-        #/rbac/role/add/
-        role = RoleSerializer(data=request.data)
-        opera = f'添加角色{request.data.get("code")}'
-        if role.is_valid():
-            role.save()
-            OperaLogging.operation(request, opera)
-            return Response({'code':200, 'msg': '添加成功'}, status=200)
-        OperaLogging.operation(request, opera, False)
-        return Response({'code':400, 'msg': role.errors}, status=400)
+    relation_serializer_class = RolePermissionSerializer
+    relation_audit_object: str = AUDIT.CLASS.PERMISSION
+    @action(detail=False, methods=['get'], url_path=f'get/permission')
+    def get_relations(self, request):
+        pk = request.query_params.get('id')
+        instance = get_object_or_404(self.model, pk=pk)
+        many_col = self.relation_serializer_class(instance).data
+        return Response({**RESPONSE__200__SUCCESS, KEY.SUCCESS: many_col}, status=status.HTTP_200_OK)
 
-    @action(
-        methods=['post'],
-        detail=False,
-        url_path='delete',
-    )
-    def del_role(self,request):
-        #/rbac/role/delete
-        serializer = RoleIDListSerializer(data=request.data)
-        ids = request.data.get('id_list', [])
-        opera = f'删除角色{ids}'
-        if not serializer.is_valid():
-            OperaLogging.operation(request, opera, False)
-            return Response({'code':400, 'msg': serializer.errors}, status=400)
-        count,_ = Role.objects.filter(id__in=ids,protected=False).delete()
-        if count == 0:
-            OperaLogging.operation(request, opera, False)
-            return Response({'code':400, 'msg': '删除失败,没有符合条件的角色'}, status=400)
-        OperaLogging.operation(request, opera)
-        return Response({'code':200, 'msg': '删除成功','count':count}, status=200)
+    @action(detail=False, methods=['get'], url_path='edit/permission')
+    def edit_relation(self, request):
+        pk = request.data.get('id')
+        instance = get_object_or_404(self.model, pk=pk)
+        if self.is_protected(instance):
+            return Response({**RESPONSE__400__FAILED, KEY.ERROR: ERRMSG.PROTECTED}, status=status.HTTP_400_BAD_REQUEST)
+        act = AUDIT.ACTION.EDIT + self.audit_object + str(pk) + self.relation_audit_object
+        serializer = self.relation_serializer_class(instance)
+        return self.add_or_edit(request, serializer, act)
 
-    @action(
-        methods=['post'],
-        detail=True,
-        url_path='modify',
-    )
-    def mod_role(self,request,pk):
-        #/rbac/role/pk/modify
-        opera = f'修改角色{pk}'
-        try:
-            role = Role.objects.get(id=pk,protected=False)
-        except Role.DoesNotExist:
-            OperaLogging.operation(request, opera, False)
-            return Response({'code':400, 'msg': '可被修改的角色不存在'}, status=400)
-        serializer = RoleSerializer(role,data=request.data,partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            OperaLogging.operation(request, opera)
-            return Response({'code':200, 'msg': '修改成功'}, status=200)
-        OperaLogging.operation(request, opera, False)
-        return Response({'code':400, 'msg': serializer.errors}, status=400)
-
-    @action(
-        methods=['post'],
-        detail=False,
-        url_path='list',
-    )
-    def list_role(self,request):
-        #/rbac/role/list
-        try:
-            roles = Role.objects.all()
-            key = request.data.get('key',None)
-            if key:
-                roles = roles.filter(Q(name__icontains=key) | Q(code__icontains=key))
-            page,total = get_page(request,roles)
-            roledata = RoleSerializer(page,many=True).data
-            data = {'total':total,"roles":roledata}
-        except Exception as e:
-            print(e)
-            return Response({'code':400, 'msg': '参数错误'}, status=400)
-        return Response({'code':200, 'msg': '查询成功','data': data}, status=200)
-    
 class PermissionListView(APIView):
     permission_classes = [BasePermission]
-    permission_code = 'system.perm.read'
-    def post(self, request):
-        # /rbac/perm/
-        perms = Permission.objects.all()
-        scope = request.data.get('scope', None)
-        try:
-            if scope:
-                perms = perms.filter(scope=scope)
-            data = PermissionSerializer(perms,many=True).data
-            if not data:
-                return Response({'code':400, 'msg': '无结果'}, status=200)
-            return Response({'code':200, 'msg': '查询成功', 'data': data}, status=200)
-        except Exception:
-            return Response({'code':400, 'msg': '参数错误'}, status=400)
+    permission_code = PERMISSIONS.SYSTEM.PERMISSIONS.READ
+    def get(self, request):
+        perms = PermissionSerializer(Permission.objects.all(),many=True).data
+        return Response({**RESPONSE__200__SUCCESS,KEY.SUCCESS:perms}, status=status.HTTP_200_OK)
         

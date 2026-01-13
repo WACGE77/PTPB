@@ -11,3 +11,4 @@ Pillow
 mysqlclient
 asyncssh
 scapy
+python-box

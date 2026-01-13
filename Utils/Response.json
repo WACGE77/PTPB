@@ -1,0 +1,18 @@
+{
+  "P_200_OK": {
+    "CODE": 200,
+    "MSG": "OK"
+  },
+  "P_400_BAD_REQUEST": {
+    "CODE": 400,
+    "MSG": "参数错误"
+  },
+  "P_401_UNAUTHORIZED": {
+    "CODE": 401,
+    "MSG": "未登录"
+  },
+  "P_403_FORBIDDEN": {
+    "CODE": 403,
+    "MSG": "无权限"
+  }
+}

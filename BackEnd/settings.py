@@ -154,7 +154,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'ptp',      # 数据库名
         'USER': 'root',           # 用户名
-        'PASSWORD': '123456',       # 密码
+        'PASSWORD': '936949426',       # 密码
         'HOST': '127.0.0.1',               # 主机
         'PORT': '3306',                    # 端口
         'OPTIONS': {

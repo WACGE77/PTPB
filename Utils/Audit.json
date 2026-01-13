@@ -1,0 +1,15 @@
+{
+  "CLASS": {
+    "USER": "用户",
+    "ROLE": "角色",
+    "RESOURCE": "资源",
+    "VOUCHER": "凭证",
+    "PERMISSION": "权限"
+  },
+  "ACTION": {
+    "ADD": "添加",
+    "DEL": "删除",
+    "EDIT": "编辑",
+    "GET": "查看"
+  }
+}

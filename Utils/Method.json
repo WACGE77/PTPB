@@ -1,0 +1,8 @@
+{
+  "CREATE":"add",
+  "UPDATE":"edit",
+  "DELETE": "delete",
+  "READ": "get",
+  "READ_RELATION": "get_relation",
+  "EDIT_RELATION": "edit_relation"
+}

@@ -2,7 +2,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from .views import  LoginView, LogoutView, RefreshView, UserManagerViewSet,PermissionListView,RoleManagerViewSet
+from .views import LoginView, LogoutView, RefreshView, UserManagerViewSet, PermissionListView, RoleManagerViewSet
 
 user_manager_router = DefaultRouter()
 user_manager_router.register('', UserManagerViewSet, basename='usermanager')

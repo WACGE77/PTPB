@@ -5,26 +5,17 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.tokens import AccessToken
 
 from perm.utils import validate_resource_permission, validate_vorcher_permission
-from .models import BaseAuth, ResourceAuth,ResourceVoucherAuth
-from rbac.utils import get_client_ip
+from .models import BaseAuth
+from Utils.public import get_client_ip
 from rbac.models import User
-from functools import wraps
 from resource.models import Resource
-
-
-def permission_required(code):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return func(*args, **kwargs)
-        wrapper.permission_code = code
-        return wrapper
-    return decorator
 
 
 class TokenAuthorization(BaseAuthentication):
     def authenticate(self, request):
         token_str = request.META.get('HTTP_AUTHORIZATION')
+        if token_str is None:
+            return None
         try:
             token = AccessToken(token_str)
             user_id = token.payload['user_id']
@@ -41,7 +32,7 @@ class TokenAuthorization(BaseAuthentication):
 class TokenPermission(permissions.BasePermission):
     def auth(self,request,view):
         if not request.user.is_authenticated:
-            raise PermissionDenied(detail='未登录',code=403)
+            raise PermissionDenied(detail='未登录',code=401)
         return True
     
     def has_permission(self, request, view):
@@ -50,8 +41,7 @@ class TokenPermission(permissions.BasePermission):
 class BasePermission(TokenPermission):
     
     def get_code(self, view):
-        permission_code = None
-        if hasattr(view,'action') and view.action and view.permission_mapping:
+        if hasattr(view,'permission_mapping'):
             permission_code = view.permission_mapping.get(view.action, None)
         else:
             permission_code = getattr(view, 'permission_code', None)
@@ -70,6 +60,13 @@ class BasePermission(TokenPermission):
     def has_permission(self, request, view):
         self.auth(request,view)
         return True
+
+
+
+
+
+
+
 
 class ResourcePermission(BasePermission):
     def auth(self,request, view):

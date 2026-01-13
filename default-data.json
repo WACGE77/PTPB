@@ -102,10 +102,10 @@
     "model": "rbac.Permission",
     "pk": 10,
     "fields": {
-      "scope": "permissions",
-      "object": "role",
+      "scope": "system",
+      "object": "permission",
       "action": "read",
-      "code": "permissions.role.read",
+      "code": "system.permission.read",
       "name": "查看授权"
     }
   },
@@ -113,10 +113,10 @@
     "model": "rbac.Permission",
     "pk": 11,
     "fields": {
-      "scope": "permissions",
-      "object": "role",
+      "scope": "system",
+      "object": "permission",
       "action": "update",
-      "code": "permissions.role.update",
+      "code": "system.permission.update",
       "name": "修改授权"
     }
   },
@@ -234,6 +234,17 @@
     "model": "rbac.Permission",
     "pk": 22,
     "fields": {
+      "scope": "audit",
+      "object": "login",
+      "action": "read",
+      "code": "audit.login.read",
+      "name": "查看操作"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 23,
+    "fields": {
       "scope": "user",
       "object": "profile",
       "action": "read",
@@ -243,7 +254,7 @@
   },
   {
     "model": "rbac.Permission",
-    "pk": 23,
+    "pk": 24,
     "fields": {
       "scope": "user",
       "object": "profile",
@@ -310,170 +321,179 @@
     "model": "perm.BaseAuth",
     "pk": 1,
     "fields": {
-        "role": 1,
-        "permission": 1,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 1,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 2,
     "fields": {
-        "role": 1,
-        "permission": 2,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 2,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 3,
     "fields": {
-        "role": 1,
-        "permission": 3,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 3,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 4,
     "fields": {
-        "role": 1,
-        "permission": 4,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 4,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 5,
     "fields": {
-        "role": 1,
-        "permission": 5,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 5,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 6,
     "fields": {
-        "role": 1,
-        "permission": 6,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 6,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 7,
     "fields": {
-        "role": 1,
-        "permission": 7,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 7,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 8,
     "fields": {
-        "role": 1,
-        "permission": 8,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 8,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 9,
     "fields": {
-        "role": 1,
-        "permission": 9,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 9,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 10,
     "fields": {
-        "role": 1,
-        "permission": 10,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 10,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 11,
     "fields": {
-        "role": 1,
-        "permission": 11,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 11,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 12,
     "fields": {
-        "role": 1,
-        "permission": 12,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 20,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 13,
     "fields": {
-        "role": 1,
-        "permission": 13,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 21,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 14,
     "fields": {
-        "role": 1,
-        "permission": 14,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 22,
+      "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 14,
+    "fields": {
+      "role": 1,
+      "permission": 23,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 15,
     "fields": {
-        "role": 1,
-        "permission": 15,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 24,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 16,
     "fields": {
-        "role": 1,
-        "permission": 16,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 2,
+      "permission": 23,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 17,
     "fields": {
-        "role": 1,
-        "permission": 17,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 2,
+      "permission": 24,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 18,
     "fields": {
-        "role": 1,
-        "permission": 18,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 3,
+      "permission": 20,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
     "model": "perm.BaseAuth",
     "pk": 19,
     "fields": {
-        "role": 1,
-        "permission": 19,
+        "role": 3,
+        "permission": 21,
         "create_date": "2025-01-01T00:00:00Z"
     }
   },
@@ -481,72 +501,119 @@
     "model": "perm.BaseAuth",
     "pk": 20,
     "fields": {
-        "role": 1,
-        "permission": 20,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 3,
+      "permission": 22,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
-    "model": "perm.BaseAuth",
-    "pk": 21,
+    "model": "perm.ResourceGroupAuth",
+    "pk": 1,
     "fields": {
-        "role": 1,
-        "permission": 21,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 11,
+      "resource_group": 1,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
-    "model": "perm.BaseAuth",
-    "pk": 22,
+    "model": "perm.ResourceGroupAuth",
+    "pk": 2,
     "fields": {
-        "role": 1,
-        "permission": 22,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 12,
+      "resource_group": 1,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
-    "model": "perm.BaseAuth",
-    "pk": 23,
+    "model": "perm.ResourceGroupAuth",
+    "pk": 3,
     "fields": {
-        "role": 1,
-        "permission": 23,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 13,
+      "resource_group": 1,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
-    "model": "perm.BaseAuth",
-    "pk": 24,
+    "model": "perm.ResourceGroupAuth",
+    "pk": 4,
     "fields": {
-        "role": 2,
-        "permission": 22,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 14,
+      "resource_group": 1,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
-    "model": "perm.BaseAuth",
-    "pk": 25,
+    "model": "perm.ResourceGroupAuth",
+    "pk": 5,
     "fields": {
-        "role": 2,
-        "permission": 23,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 15,
+      "resource_group": 1,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
-    "model": "perm.BaseAuth",
-    "pk": 26,
+    "model": "perm.ResourceGroupAuth",
+    "pk": 6,
     "fields": {
-        "role": 3,
-        "permission": 20,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 16,
+      "resource_group": 1,
+      "create_date": "2025-01-01T00:00:00Z"
     }
   },
   {
-    "model": "perm.BaseAuth",
-    "pk": 27,
+    "model": "perm.ResourceGroupAuth",
+    "pk": 7,
     "fields": {
-        "role": 3,
-        "permission": 21,
-        "create_date": "2025-01-01T00:00:00Z"
+      "role": 1,
+      "permission": 17,
+      "resource_group": 1,
+      "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.ResourceGroupAuth",
+    "pk": 8,
+    "fields": {
+      "role": 1,
+      "permission": 18,
+      "resource_group": 1,
+      "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.ResourceGroupAuth",
+    "pk": 9,
+    "fields": {
+      "role": 1,
+      "permission": 19,
+      "resource_group": 1,
+      "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "resource.Protocol",
+    "pk": 1,
+    "fields": {
+      "name": "SSH",
+      "code": "SSH",
+      "description": "SSH"
+    }
+  },
+    {
+    "model": "resource.ResourceGroup",
+    "pk": 1,
+    "fields": {
+      "name": "Default",
+      "protected": true,
+      "description": "默认资源部组",
+      "create_date": "2025-01-01T00:00:00Z",
+      "update_date": "2025-01-01T00:00:00Z"
     }
   }
 ]

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rbac.models import Role, Permission
-from rbac.serialization import  PermissionSerializer, RoleSerializer, UserSerializer
+from rbac.serialization import UserSerializer
 class RolePermissionSerializer(serializers.ModelSerializer):
     perms = serializers.SerializerMethodField()
     class Meta:
@@ -31,7 +31,7 @@ class BaseAuthSerializer(serializers.Serializer):
 class UserRoleSerializer(UserSerializer):
     roles = serializers.SerializerMethodField()
     class Meta(UserSerializer.Meta):
-        fields = UserSerializer.Meta.fields + ['roles']
+        fields = UserSerializer.Meta.fields
     def get_roles(self,obj):
         roles = obj.roles.all().values('id')
         roles_id = [role['id'] for role in roles]

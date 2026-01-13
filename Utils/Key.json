@@ -1,0 +1,12 @@
+{
+  "PAGE_SIZE": "page_size",
+  "PAGE_NUMBER": "page_number",
+  "TOTAL": "total",
+  "CODE": "code",
+  "MSG": "msg",
+  "DATA": "data",
+  "ERROR": "detail",
+  "SUCCESS": "detail",
+  "IP": "ip",
+  "PERMISSIONS": "perms"
+}

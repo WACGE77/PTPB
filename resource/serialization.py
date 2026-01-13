@@ -4,7 +4,7 @@ from audit.serialization import RecordUserSerializer
 from perm.models import BaseAuth, ResourceAuth
 
 from .models import Resource,ResourceVoucher
-from PTPUtils.public import validate_exclusive_params
+from Utils.public import validate_exclusive_params
 class VoucherRecordSerializer(serializers.ModelSerializer):
      class Meta:
         model = ResourceVoucher

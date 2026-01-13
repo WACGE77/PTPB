@@ -1,0 +1,33 @@
+{
+  "UNIQUE": {
+    "ACCOUNT": "账户以被注册",
+    "EMAIL": "邮箱已被注册",
+    "PHONE": "手机号已被注册",
+    "NAME": "名称已被占用",
+    "CODE": "唯一编码已被占用"
+  },
+  "REQUIRED": {
+    "ACCOUNT": "账户为必填项",
+    "PASSWORD": "密码为必填项",
+    "OLD_PASSWORD": "旧密码不能为空",
+    "ID": "ID为必传参数",
+    "ID_LIST": "ID列表为必传参数",
+    "NAME": "名称不能为空",
+    "CODE": "唯一编码不能为空"
+  },
+  "MAX": {
+    "PASSWORD": "密码长度不得超过",
+    "ACCOUNT": "账号长度不得超过"
+  },
+  "INVALID": {
+    "EMAIL": "无效邮箱",
+    "ID": "无效ID",
+    "ID_LIST": "无效ID列表"
+  },
+  "ERROR": {
+    "PASSWORD": "密码错误",
+    "NEW_ORL_EQ": "新旧密码不能相同",
+    "DISABLED": "用户被禁用，请及时联系管理员"
+  },
+  "PROTECTED": "无法操作系统保留项"
+}

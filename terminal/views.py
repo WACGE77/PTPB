@@ -1,9 +1,7 @@
 
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
 from perm.authentication import ResourcePermission, TokenPermission
-from perm.models import BaseAuth
 
 
 # Create your views here.

@@ -1,8 +1,9 @@
 from .models import LoginLog,OperationLog,SessionLog
 class OperaLogging:
     @staticmethod
-    def login(ip,user,status:str):
-        LoginLog.objects.create(ip=ip,user=user,status=status)
+    def login(request,status:str):
+        ip = request.auth.get('ip','')
+        LoginLog.objects.create(ip=ip,user=request.user,status=status)
 
     @staticmethod
     def operation(request,operation:str,status:bool=True):

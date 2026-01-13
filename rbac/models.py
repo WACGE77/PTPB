@@ -7,6 +7,7 @@ def avatar_upload_path(instance, filename):
 # Create your models here.
 class User(models.Model):
     class Meta:
+        db_table = 'user'
         verbose_name = '用户'
     id = models.AutoField(primary_key=True)
     account = models.CharField(max_length=20, unique=True,verbose_name='账户')
@@ -22,7 +23,7 @@ class User(models.Model):
     login_date = models.DateTimeField(null=True, blank=True)
     remark = models.TextField(null=True, blank=True)
 
-    group = models.ManyToManyField('UserGroup',related_name='users')
+    group = models.ManyToManyField('UserGroup',related_name='users',blank=True,verbose_name='用户组')
     roles = models.ManyToManyField('Role',through='UserRole',related_name='users')
 
     @property
@@ -30,6 +31,8 @@ class User(models.Model):
         return True
 
 class Role(models.Model):
+    class Meta:
+        db_table = 'role'
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=20, unique=True)
     code = models.CharField(max_length=20, unique=True)
@@ -39,16 +42,18 @@ class Role(models.Model):
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
     perms = models.ManyToManyField('rbac.Permission',through='perm.BaseAuth',related_name='roles')
-    create_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='create_roles')
-    update_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='update_roles')
 
 class UserRole(models.Model):
+    class Meta:
+        db_table = 'user_role'
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey('rbac.User', on_delete=models.CASCADE)
     role = models.ForeignKey('rbac.Role', on_delete=models.CASCADE)
     create_date = models.DateTimeField(auto_now_add=True)
 
 class Permission(models.Model):
+    class Meta:
+        db_table = 'permission'
     #生产固定表
     id = models.AutoField(primary_key=True)
     scope = models.CharField(max_length=15)
@@ -59,6 +64,8 @@ class Permission(models.Model):
 
 
 class UserGroup(models.Model):
+    class Meta:
+        db_table = 'user_group'
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=20, unique=True)
     code = models.CharField(max_length=20, unique=True)
