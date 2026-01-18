@@ -11,7 +11,7 @@ from .models import User,Role,Permission
 from .serialization import LoginSerializer, ChangePasswordSerializer, \
     UserSerializer, PermissionSerializer, RoleSerializer, RolePermissionSerializer
 
-from Utils.modelViewSet import CURDModelViewSet
+from Utils.modelViewSet import CURDModelViewSet, create_base_view_set
 from Utils.public import verify_password, get_token_response
 from Utils.Const import PERMISSIONS,METHODS,AUDIT,RESPONSE__200__SUCCESS, \
     RESPONSE__400__FAILED, KEY, RESPONSE, ERRMSG
@@ -63,18 +63,18 @@ class RefreshView(APIView):
             return Response({**RESPONSE__400__FAILED}, status=401)
         return get_token_response(user, {**RESPONSE__200__SUCCESS})
 
-class UserManagerViewSet(CURDModelViewSet):
-    permission_classes = [BasePermission]
-    model = User
-    serializer_class = UserSerializer
-    log_class = OperaLogging
-    protect_key = 'protected'
-    audit_class = AUDIT.CLASS.USER
+_UserManagerViewSet = create_base_view_set(
+    User,
+    UserSerializer,
+[BasePermission],
+    PERMISSIONS.SYSTEM.USER,
+    OperaLogging,
+    AUDIT.CLASS.USER,
+    protect_key='protected',
+)
+class UserManagerViewSet(_UserManagerViewSet):
     permission_mapping = {
-        METHODS.CREATE: PERMISSIONS.SYSTEM.USER.CREATE,
-        METHODS.UPDATE: PERMISSIONS.SYSTEM.USER.UPDATE,
-        METHODS.DELETE: PERMISSIONS.SYSTEM.USER.DELETE,
-        METHODS.READ: PERMISSIONS.SYSTEM.USER.READ,
+        **_UserManagerViewSet.permission_mapping,
         "reset_password":PERMISSIONS.USER.PROFILE.UPDATE,
         "detail_":PERMISSIONS.USER.PROFILE.READ,
     }
@@ -91,20 +91,19 @@ class UserManagerViewSet(CURDModelViewSet):
         detail[KEY.IP] = request.auth.get('ip')
         return Response({**RESPONSE__200__SUCCESS,KEY.SUCCESS:detail}, status=status.HTTP_200_OK)
 
-
-class RoleManagerViewSet(CURDModelViewSet):
-    permission_classes = [BasePermission]
-    model = Role
-    serializer_class = RoleSerializer
+_RoleManagerViewSet = create_base_view_set(
+    Role,
+    RoleSerializer,
+[BasePermission],
+    PERMISSIONS.SYSTEM.Role,
+    OperaLogging,
+    AUDIT.CLASS.Role,
+    protect_key='protected',
+)
+class RoleManagerViewSet(_RoleManagerViewSet):
     many_serializer_class = RolePermissionSerializer
-    protect_key = 'protected'
-    audit_class = AUDIT.CLASS.ROLE
-    log_class = OperaLogging
     permission_mapping = {
-        METHODS.CREATE: PERMISSIONS.SYSTEM.ROLE.CREATE,
-        METHODS.UPDATE: PERMISSIONS.SYSTEM.ROLE.UPDATE,
-        METHODS.DELETE: PERMISSIONS.SYSTEM.ROLE.DELETE,
-        METHODS.READ: PERMISSIONS.SYSTEM.ROLE.READ,
+        **_RoleManagerViewSet.permission_mapping,
         METHODS.READ_RELATION:PERMISSIONS.SYSTEM.PERMISSIONS.READ,
         METHODS.EDIT_RELATION:PERMISSIONS.SYSTEM.PERMISSIONS.UPDATE,
     }

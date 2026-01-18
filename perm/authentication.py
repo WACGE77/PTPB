@@ -1,15 +1,14 @@
-
+from nacl.bindings.randombytes import randombytes_SEEDBYTES
 from rest_framework import permissions
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.tokens import AccessToken
 
-from perm.utils import validate_resource_permission, validate_vorcher_permission
-from .models import BaseAuth
+from Utils.Const import ERRMSG
+from resource.serialization import ResourcePermissionSerializer
+from .models import BaseAuth, ResourceGroupAuth
 from Utils.public import get_client_ip
 from rbac.models import User
-from resource.models import Resource
-
 
 class TokenAuthorization(BaseAuthentication):
     def authenticate(self, request):
@@ -38,20 +37,20 @@ class TokenPermission(permissions.BasePermission):
     def has_permission(self, request, view):
         return self.auth(request,view)
 
+def get_code(view):
+    if hasattr(view,'permission_mapping'):
+        permission_code = view.permission_mapping.get(view.action, None)
+    else:
+        permission_code = getattr(view, 'permission_code', None)
+    if not permission_code:
+        raise PermissionDenied(detail='代码写错了',code=403)
+    return permission_code
+
 class BasePermission(TokenPermission):
-    
-    def get_code(self, view):
-        if hasattr(view,'permission_mapping'):
-            permission_code = view.permission_mapping.get(view.action, None)
-        else:
-            permission_code = getattr(view, 'permission_code', None)
-        if not permission_code:
-            raise PermissionDenied(detail='代码写错了',code=403)
-        return permission_code
 
     def auth(self,request, view):
         super().auth(request, view)
-        permission_code = self.get_code(view)
+        permission_code = get_code(view)
         auth = BaseAuth.objects.filter(permission__code=permission_code,role__in=request.user.roles.all()).exists()
         if not auth:
             raise PermissionDenied(detail='您无当前权限访问',code=403)
@@ -61,39 +60,43 @@ class BasePermission(TokenPermission):
         self.auth(request,view)
         return True
 
-
-
-
-
-
-
-
-class ResourcePermission(BasePermission):
-    def auth(self,request, view):
-        permission_code = self.get_code(view)
-        id = request.data.get('id',None)
-        if not id or not Resource.objects.filter(id=id).exists():
-            raise PermissionDenied(detail='无该资源',code=403)
-        roles_id = request.user.roles.values('id')
-        if not validate_resource_permission(request.user,roles_id,id,permission_code):
-            raise PermissionDenied(detail='您无当前权限',code=403)
-            
+class ResourcePermission(permissions.BasePermission):
+    def auth(self,request,view):
+        permission_code = get_code(view)
+        group = request.data.get('group')
+        if not ResourceGroupAuth.objects.filter(
+            permission__code=permission_code,
+            role__in=request.roles.all(),
+            resource_group=group
+        ).exists():
+            raise PermissionDenied(detail='您无当前权限访问',code=403)
     def has_permission(self, request, view):
-        self.auth(request,view)
+        self.auth(request, view)
         return True
-        
-class ResourceVoucherPermission(BasePermission):
 
-    def auth(self,request, view):
-        permission_code = self.get_code(view)
-        id = request.data.get('id',None)
-        if not id:
-            raise PermissionDenied(detail='参数错误',code=403)
-        roles = request.user.roles.values('id')
-        if not validate_vorcher_permission(request.user,roles,id,permission_code):
-            raise PermissionDenied(detail='您无当前权限',code=403)
-            
+class ResourceEditPermission(ResourcePermission):
+    def auth(self,request,view):
+        serializer = ResourcePermissionSerializer(data=request.data)
+        if not serializer.is_valid():
+            raise PermissionDenied(detail=ERRMSG.ERROR.ARG,code=403)
+        model = view.model
+        resource = model.objects.get(id=serializer.validated_data['id'])
+        group = serializer.validated_data['group']
+        if resource.group == group:
+            super().auth(request,view)
+            return
+        delete_perm_code = view.permission_const_box.DELETE
+        add_perm_code = view.permission_const_box.CREATE
+        if not (ResourceGroupAuth.objects.filter(
+            permission__code=delete_perm_code,
+            role__in=request.roles.all(),
+            resource_group=resource.group
+        ).exists() and ResourceGroupAuth.objects.filter(
+            permission__code=add_perm_code,
+            role__in=request.roles.all(),
+            resource_group=group
+        ).exists()):
+            raise PermissionDenied(detail=ERRMSG.SWITCH.GROUP,code=403)
     def has_permission(self, request, view):
-        self.auth(request,view)
+        self.auth(request, view)
         return True
-        

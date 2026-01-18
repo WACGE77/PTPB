@@ -9,10 +9,10 @@ class Resource(models.Model):
     ipv6_address = models.GenericIPAddressField(protocol='IPv6', unique=True, null=True, blank=True)
     domain = models.CharField(max_length=100, unique=True, null=True, blank=True)
     port = models.IntegerField(default=22)
-    vouchers = models.ManyToManyField('resource.SSHVoucher',related_name='resources',blank=True)
     description = models.TextField(null=True, blank=True)
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
+    vouchers = models.ManyToManyField('resource.SSHVoucher', related_name='resources', blank=True)
     group = models.ForeignKey('ResourceGroup', on_delete=models.SET_DEFAULT,default=1, related_name='resources')
     protocol = models.ForeignKey('Protocol', on_delete=models.SET_NULL, related_name='resources')
     class Meta:
@@ -29,13 +29,14 @@ class Resource(models.Model):
 
 class SSHVoucher(models.Model):
     id = models.AutoField(primary_key=True)
-    code = models.CharField(max_length=50)
-    username = models.CharField(max_length=50)
+    name = models.CharField(unique=True,max_length=20)
+    username = models.CharField(max_length=20)
     password = models.CharField(max_length=256,null=True,blank=True)
     private_key = models.TextField(null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
+    group = models.ForeignKey('ResourceGroup', on_delete=models.SET_DEFAULT,default=1, related_name='ssh_vouchers')
     class Meta:
         db_table = 'ssh_voucher'
         constraints = [
@@ -58,7 +59,7 @@ class ResourceGroup(models.Model):
     protected = models.BooleanField(default=False)
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
-    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='children')
+    #parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='children')
     
 
 class Protocol(models.Model):

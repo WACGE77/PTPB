@@ -2,13 +2,14 @@ import re
 
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
+
+from Utils.Const import READ_ONLY_FILED, WRITE_ONLY_FILED
 from .models import User,Role,Permission
 from Utils.public import verify_password, encrypt_password
 
 from Utils.modelViewSet import ERRMSG
 
-read_only = {'read_only':True}
-write_only = {'write_only':True}
+
 
 class LoginSerializer(serializers.Serializer):
     account = serializers.CharField(max_length=20, required=True,error_messages={
@@ -51,9 +52,9 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = "__all__"
         extra_kwargs = {
-            'id':read_only,
+            'id':READ_ONLY_FILED,
             'account': {
-                **write_only,
+                **WRITE_ONLY_FILED,
                 'error_messages': {
                     'required': ERRMSG.REQUIRED.ACCOUNT,
                 },
@@ -65,7 +66,7 @@ class UserSerializer(serializers.ModelSerializer):
                 ],
             },
             'password':{
-                **write_only,
+                **WRITE_ONLY_FILED,
                 'error_messages':{
                     'required': ERRMSG.REQUIRED.PASSWORD,
                 }
@@ -82,16 +83,16 @@ class UserSerializer(serializers.ModelSerializer):
                     'invalid': ERRMSG.INVALID.EMAIL,
                 },
             },
-            'protected':read_only,
+            'protected':READ_ONLY_FILED,
             'phone_number': {
                 'error_messages':{
                     'unique':ERRMSG.UNIQUE.PHONE,
                 },
             },
-            'update_date':read_only,
-            'login_date':read_only,
-            'group':read_only,
-            'roles':read_only,
+            'update_date':READ_ONLY_FILED,
+            'login_date':READ_ONLY_FILED,
+            'group':READ_ONLY_FILED,
+            'roles':READ_ONLY_FILED,
         }
     def validate(self,attrs):
         if attrs.get('password'):
@@ -104,7 +105,7 @@ class RoleSerializer(serializers.ModelSerializer):
         fields = "__all__"
         exclude = ['perms']
         extra_kwargs = {
-            'id':read_only,
+            'id':READ_ONLY_FILED,
             'name':{
                 "validators": [
                     UniqueValidator(
@@ -127,16 +128,16 @@ class RoleSerializer(serializers.ModelSerializer):
                     "required": ERRMSG.REQUIRED.CODE,
                 }
             },
-            "protected":read_only,
-            "create_date":read_only,
-            "update_date":read_only,
+            "protected":READ_ONLY_FILED,
+            "create_date":READ_ONLY_FILED,
+            "update_date":READ_ONLY_FILED,
         }
 class RolePermissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
         fields = ['id','perms']
         extra_kwargs = {
-            'id':read_only,
+            'id':READ_ONLY_FILED,
         }
 class PermissionSerializer(serializers.ModelSerializer):
     class Meta:

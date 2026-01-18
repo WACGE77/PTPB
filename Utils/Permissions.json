@@ -12,6 +12,12 @@
       "UPDATE": "system.role.update",
       "READ": "system.role.read"
     },
+    "RESOURCE_GROUP": {
+      "CREATE": "system.role.create",
+      "DELETE": "system.role.delete",
+      "UPDATE": "system.role.update",
+      "READ": "system.role.read"
+    },
     "PERMISSIONS": {
       "READ": "system.permissions.read",
       "UPDATE": "system.permissions.update"

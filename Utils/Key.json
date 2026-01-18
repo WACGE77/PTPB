@@ -8,5 +8,6 @@
   "ERROR": "detail",
   "SUCCESS": "detail",
   "IP": "ip",
-  "PERMISSIONS": "perms"
+  "PERMISSIONS": "perms",
+  "ROLE": "role"
 }

@@ -22,12 +22,27 @@
   "INVALID": {
     "EMAIL": "无效邮箱",
     "ID": "无效ID",
-    "ID_LIST": "无效ID列表"
+    "ID_LIST": "无效ID列表",
+    "IP": "IP地址格式无效"
+  },
+  "ABSENT": {
+    "ROLE": "角色不存在"
+  },
+  "REMAIN": {
+    "RESOURCE_GROUP": "有资源未解绑"
+  },
+  "EXCLUSION": {
+    "IPV4_IPV6": "ipv4与ipv6只能填写一个"
+  },
+  "SWITCH": {
+    "GROUP": "无切换组权限,即添加新组和删除旧组的组合权限"
   },
   "ERROR": {
+    "ARG": "错误参数",
     "PASSWORD": "密码错误",
     "NEW_ORL_EQ": "新旧密码不能相同",
-    "DISABLED": "用户被禁用，请及时联系管理员"
+    "DISABLED": "用户被禁用，请及时联系管理员",
+    "PERMISSION": "权限错误"
   },
   "PROTECTED": "无法操作系统保留项"
 }
