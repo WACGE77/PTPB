@@ -17,7 +17,7 @@ class _GroupSerializer(serializers.Serializer):
         return value
     def validate_permission(self, value):
         if not all(
-            isinstance(value, int) and 16 <= value <= 23
+            isinstance(i, int) and 16 <= value <= 23
             for i in value
         ):
             raise serializers.ValidationError({KEY.PERMISSIONS: ERRMSG.ERROR.PERMISSION})
@@ -55,3 +55,9 @@ class ResourceGroupAuthSerializer(serializers.Serializer):
                 batch_size=1000,
                 ignore_conflicts=False
             )
+
+class ResourceGroupAuthListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResourceGroupAuth
+        fields = '__all__'
+        read_only_fields = '__all__'

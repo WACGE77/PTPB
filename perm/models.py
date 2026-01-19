@@ -1,4 +1,3 @@
-from box import Box
 from django.db import models
 
 # Create your models here.
@@ -11,7 +10,7 @@ class BaseAuth(models.Model):
     permission = models.ForeignKey('rbac.Permission', on_delete=models.CASCADE, related_name='base_authorizations')
     create_date = models.DateTimeField(auto_now_add=True)
 
-class ResourceGroupAuth(BaseAuth):
+class ResourceGroupAuth(models.Model):
     class Meta:
         db_table = 'resource_group_auth'
     id = models.AutoField(primary_key=True)

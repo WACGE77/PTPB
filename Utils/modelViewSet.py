@@ -1,9 +1,8 @@
 from typing import Optional,Type
 
-from django.contrib.gis.gdal import check_err
 from django.core.paginator import Paginator, PageNotAnInteger
 from django.db.models import Model
-from rest_framework import status, permissions
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.fields import BooleanField
 from rest_framework.generics import get_object_or_404
