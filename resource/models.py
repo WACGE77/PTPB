@@ -12,9 +12,9 @@ class Resource(models.Model):
     description = models.TextField(null=True, blank=True)
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
-    vouchers = models.ManyToManyField('resource.SSHVoucher', related_name='resources', blank=True)
+    vouchers = models.ManyToManyField('resource.Voucher', related_name='resources', blank=True)
     group = models.ForeignKey('ResourceGroup', on_delete=models.SET_DEFAULT,default=1, related_name='resources')
-    protocol = models.ForeignKey('Protocol', on_delete=models.SET_NULL, related_name='resources')
+    protocol = models.ForeignKey('Protocol', on_delete=models.SET_NULL, null=True, related_name='resources')
     class Meta:
         db_table = 'resource'
         constraints = [
@@ -27,7 +27,7 @@ class Resource(models.Model):
             )
         ]
 
-class SSHVoucher(models.Model):
+class Voucher(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(unique=True,max_length=20)
     username = models.CharField(max_length=20)

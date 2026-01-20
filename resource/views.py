@@ -2,8 +2,8 @@ from rest_framework.decorators import action
 from Utils.Const import AUDIT, PERMISSIONS, ERRMSG
 from Utils.modelViewSet import create_base_view_set
 from perm.authentication import ResourcePermission, ResourceEditPermission, BasePermission
-from resource.models import Resource, SSHVoucher, ResourceGroup
-from resource.serialization import ResourceSerializer, SSHVoucherSerializer, ResourceGroupSerializer
+from resource.models import Resource, Voucher, ResourceGroup
+from resource.serialization import ResourceSerializer, VoucherSerializer, ResourceGroupSerializer
 from audit.Logging import OperaLogging
 
 
@@ -25,8 +25,8 @@ class ResourceViewSet(_ResourceEditView,_ResourceViewSet):
     pass
 
 _SSHVoucherViewSet = create_base_view_set(
-    SSHVoucher,
-    SSHVoucherSerializer,
+    Voucher,
+    VoucherSerializer,
 [ResourcePermission],
     PERMISSIONS.RESOURCE.VOUCHER,
     OperaLogging,

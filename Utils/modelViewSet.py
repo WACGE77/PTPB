@@ -1,5 +1,4 @@
 from typing import Optional,Type
-
 from django.core.paginator import Paginator, PageNotAnInteger
 from django.db.models import Model
 from rest_framework import status
@@ -12,7 +11,7 @@ from rest_framework.serializers import BaseSerializer,Serializer,ListSerializer,
 from rest_framework.viewsets import ViewSet
 from box import Box
 
-from Utils.Const import KEY, RESPONSE, ERRMSG, AUDIT, RESPONSE__200__SUCCESS, RESPONSE__400__FAILED, METHODS
+from Utils.Const import KEY, ERRMSG, AUDIT, RESPONSE__200__SUCCESS, RESPONSE__400__FAILED, METHODS
 from audit.Logging import OperaLogging
 
 class IDSerializer(Serializer):
@@ -51,7 +50,7 @@ class ModelViewSet(ViewSet):
     protect_key: str = None
     delete_key: str = 'id_list'
     model: Model = None
-    serializer_class: Optional[Type[BaseSerializer]] = None
+    serializer_class: Optional[Type[BaseSerializer]]
     log_class: Optional[Type[OperaLogging]] | None = None
     audit_object: str = None
     permission_mapping = dict()
@@ -121,22 +120,33 @@ class UModelViewSet(ModelViewSet):
         return res
 
 class RModelViewSet(ModelViewSet):
-    def search(self):
+    """
+    permission_classes:list[Type[BasePermission]] = None
+    model: Model = None
+    serializer_class: Optional[Type[BaseSerializer]]
+    log_class: Optional[Type[OperaLogging]] | None = None
+    audit_object: str = None
+    permission_mapping = dict()
+    permission_code = None
+    permission_const_box:Box = None
+    """
+    def search(self,request):
         return self.model.objects.all()
     @action(detail=False, methods=['get'], url_path='get')
     def get(self, request):
         serializer = PageArg(data=request.data)
         if serializer.is_valid():
             try:
-                query = self.search()
-                page_size = min(serializer.validated_data[KEY.PAGE_SIZE], 100)
-                paginator = Paginator(query, page_size)
-                total = paginator.count
-                page = paginator.page(serializer.validated_data[KEY.PAGE_NUMBER]).object_list
+                query = self.search(request)
+                total = query.count()
+                if serializer.validated_data['all']:
+                    page_size = min(serializer.validated_data[KEY.PAGE_SIZE], 100)
+                    paginator = Paginator(query, page_size)
+                    query = paginator.page(serializer.validated_data[KEY.PAGE_NUMBER]).object_list
                 data = {
                     **RESPONSE__200__SUCCESS,
                     KEY.TOTAL: total,
-                    KEY.SUCCESS: self.serializer_class(page, many=True).data,
+                    KEY.SUCCESS: self.serializer_class(query, many=True).data,
                 }
                 return Response(data, status=status.HTTP_200_OK)
             except PageNotAnInteger:
@@ -146,7 +156,10 @@ class RModelViewSet(ModelViewSet):
 class DModelViewSet(ModelViewSet):
     check_error:str = None
     def check(self,id_list):
-        return False
+        """
+        默认允许（或默认拒绝），子类可选择性重写
+        """
+        return True
     @action(detail=False, methods=['post'], url_path='del')
     def delete(self, request):
         serializer = IDListSerializer(data=request.data)
@@ -179,7 +192,8 @@ def create_base_view_set(
     audit_object: str = None,
     protect_key:str = None,
     permission_code:str = None,
-    delete_key: str = 'id_list'
+    delete_key: str = 'id_list',
+    view_set_class = CURDModelViewSet,
 ):
     class_name = f"_{model.__name__}ViewSet"
     perm_mapping = {
@@ -189,7 +203,7 @@ def create_base_view_set(
         METHODS.READ: permission_const_box.READ,
     }
     perm_code = permission_code
-    return type(class_name, (CURDModelViewSet,), {
+    return type(class_name, (view_set_class,), {
         'model': model,
         'serializer_class': serializer_class,
         'permission_class': permission_class,

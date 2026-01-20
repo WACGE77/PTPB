@@ -282,7 +282,7 @@
       "object": "login",
       "action": "read",
       "code": "audit.login.read",
-      "name": "查看操作"
+      "name": "查看登录"
     }
   },
   {

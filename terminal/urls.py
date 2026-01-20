@@ -1,6 +1,6 @@
 from django.urls import path
 
-from terminal.consumers import SSHConsumer
+#from terminal.consumers import SSHConsumer
 from terminal.views import Test
 
 
@@ -10,5 +10,5 @@ urlpatterns = [
 
 
 websocket_urlpatterns = [
-    path('ssh/',SSHConsumer.as_asgi(),name='ssh')
+    #path('ssh/',SSHConsumer.as_asgi(),name='ssh')
 ]

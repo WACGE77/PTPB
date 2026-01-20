@@ -43,6 +43,9 @@
     },
     "OPERATION": {
       "READ": "audit.operation.read"
+    },
+    "LOGIN": {
+      "READ": "audit.login.read"
     }
   },
   "USER": {

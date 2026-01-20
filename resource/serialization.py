@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from Utils.Const import ERRMSG,KEY
-from resource.models import Resource, SSHVoucher, ResourceGroup
+from resource.models import Resource, Voucher, ResourceGroup
 
 
 class ResourceGroupSerializer(serializers.ModelSerializer):
@@ -35,7 +35,7 @@ class ResourceSerializer(serializers.ModelSerializer):
             "name":{
                 'validators':[UniqueValidator(
                     queryset=Resource.objects.all(),
-                    message=ERRMSG.UNIQE.NAME
+                    message=ERRMSG.UNIQUE.NAME
                 )]
             },
             "ipv4_address":{
@@ -44,7 +44,7 @@ class ResourceSerializer(serializers.ModelSerializer):
                 },
                 'validators':[UniqueValidator(
                     queryset=Resource.objects.all(),
-                    message=ERRMSG.UNIQE.IPV4_ADDRESS
+                    message=ERRMSG.UNIQUE.IPV4_ADDRESS
                 )]
             },
             "ipv6_address":{
@@ -53,7 +53,7 @@ class ResourceSerializer(serializers.ModelSerializer):
                 },
                 'validators':[UniqueValidator(
                     queryset=Resource.objects.all(),
-                    message=ERRMSG.UNIQE.IPV6_ADDRESS
+                    message=ERRMSG.UNIQUE.IPV6_ADDRESS
                 )]
             },
         }
@@ -64,16 +64,16 @@ class ResourceSerializer(serializers.ModelSerializer):
         attrs['ipv6_address'] = attrs.get('ipv6_address') or None
         return attrs
 
-class SSHVoucherSerializer(serializers.ModelSerializer):
+class VoucherSerializer(serializers.ModelSerializer):
     class Meta:
-        model = SSHVoucher
+        model = Voucher
         fields = '__all__'
         read_only_fields = ('id','create_date','update_date')
         extra_kwargs = {
             "name":{
                 "validators":[UniqueValidator(
-                    queryset=SSHVoucher.objects.all(),
-                    message=ERRMSG.UNIQE.NAME
+                    queryset=Voucher.objects.all(),
+                    message=ERRMSG.UNIQUE.NAME
                 )]
             },
         }

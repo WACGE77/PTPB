@@ -9,5 +9,6 @@
   "SUCCESS": "detail",
   "IP": "ip",
   "PERMISSIONS": "perms",
-  "ROLE": "role"
+  "ROLE": "role",
+  "SCOPE": "scope"
 }

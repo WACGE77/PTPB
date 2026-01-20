@@ -1,7 +1,4 @@
 from django.db import models
-
-
-
 # Create your models here.
 class LoginLog(models.Model):
     id = models.AutoField(primary_key=True)
@@ -26,7 +23,7 @@ class SessionLog(models.Model):
     user = models.ForeignKey('rbac.User', on_delete=models.CASCADE)
     ip = models.GenericIPAddressField()
     resource = models.ForeignKey('resource.Resource', on_delete=models.CASCADE, related_name='session_records')
-    voucher = models.ForeignKey('resource.ResourceVoucher', on_delete=models.CASCADE, related_name='session_records')
+    voucher = models.ForeignKey('resource.Voucher', on_delete=models.CASCADE, related_name='session_records')
     
 class ShellOperationLog(models.Model):
     id = models.AutoField(primary_key=True)

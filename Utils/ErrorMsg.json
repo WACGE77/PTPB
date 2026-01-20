@@ -4,7 +4,9 @@
     "EMAIL": "邮箱已被注册",
     "PHONE": "手机号已被注册",
     "NAME": "名称已被占用",
-    "CODE": "唯一编码已被占用"
+    "CODE": "唯一编码已被占用",
+    "IPV4_ADDRESS": "ipv4地址重复",
+    "IPV6_ADDRESS": "ipv6地址重复"
   },
   "REQUIRED": {
     "ACCOUNT": "账户为必填项",

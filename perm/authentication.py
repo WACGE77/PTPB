@@ -1,10 +1,10 @@
-from nacl.bindings.randombytes import randombytes_SEEDBYTES
+
 from rest_framework import permissions
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.tokens import AccessToken
 
-from Utils.Const import ERRMSG
+from Utils.Const import ERRMSG, METHODS
 from resource.serialization import ResourcePermissionSerializer
 from .models import BaseAuth, ResourceGroupAuth
 from Utils.public import get_client_ip
@@ -60,8 +60,9 @@ class BasePermission(TokenPermission):
         self.auth(request,view)
         return True
 
-class ResourcePermission(permissions.BasePermission):
+class ResourcePermission(TokenPermission):
     def auth(self,request,view):
+        super().auth(request, view)
         permission_code = get_code(view)
         group = request.data.get('group')
         if not ResourceGroupAuth.objects.filter(
@@ -98,5 +99,25 @@ class ResourceEditPermission(ResourcePermission):
         ).exists()):
             raise PermissionDenied(detail=ERRMSG.SWITCH.GROUP,code=403)
     def has_permission(self, request, view):
+        self.auth(request, view)
+        return True
+
+class AuditPermission(TokenPermission):
+    def auth(self,request,view):
+        super().auth(request, view)
+        scope_self = request.GET.get('self')
+        query = BaseAuth.objects.filter(role__in=request.user.roles.all())
+        if scope_self:
+            query = query.filter(
+                permission__code=view.permission_mapping.get(METHODS.READ_SELF)
+            )
+        else:
+            query = query.filter(
+                permission__code=view.permission_mapping.get(METHODS.READ_ALL), role__in=request.user.role.all()
+            )
+        if not query.exists():
+            raise PermissionDenied(detail="您无当前权限访问",code=403)
+
+    def has_object_permission(self, request, view, obj):
         self.auth(request, view)
         return True

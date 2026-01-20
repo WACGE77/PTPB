@@ -95,9 +95,9 @@ _RoleManagerViewSet = create_base_view_set(
     Role,
     RoleSerializer,
 [BasePermission],
-    PERMISSIONS.SYSTEM.Role,
+    PERMISSIONS.SYSTEM.ROLE,
     OperaLogging,
-    AUDIT.CLASS.Role,
+    AUDIT.CLASS.ROLE,
     protect_key='protected',
 )
 class RoleManagerViewSet(_RoleManagerViewSet):

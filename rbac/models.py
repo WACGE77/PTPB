@@ -23,7 +23,6 @@ class User(models.Model):
     login_date = models.DateTimeField(null=True, blank=True)
     remark = models.TextField(null=True, blank=True)
 
-    group = models.ManyToManyField('UserGroup',related_name='users',blank=True,verbose_name='用户组')
     roles = models.ManyToManyField('Role',through='UserRole',related_name='users')
 
     @property
@@ -57,23 +56,7 @@ class Permission(models.Model):
     #生产固定表
     id = models.AutoField(primary_key=True)
     scope = models.CharField(max_length=15)
-    object = models.CharField(max_length=10)
+    object = models.CharField(max_length=15)
     action = models.CharField(max_length=10)
-    code = models.CharField(max_length=30, unique=True)
+    code = models.CharField(max_length=40, unique=True)
     name = models.CharField(max_length=20)
-
-
-class UserGroup(models.Model):
-    class Meta:
-        db_table = 'user_group'
-    id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=20, unique=True)
-    code = models.CharField(max_length=20, unique=True)
-    status = models.BooleanField(default=True)
-    remark = models.TextField(null=True, blank=True)
-    create_date = models.DateTimeField(auto_now_add=True)
-    update_date = models.DateTimeField(auto_now=True)
-
-    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='children')
-    create_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='create_groups')
-    update_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='update_groups')

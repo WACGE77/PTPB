@@ -4,5 +4,7 @@
   "DELETE": "delete",
   "READ": "get",
   "READ_RELATION": "get_relation",
-  "EDIT_RELATION": "edit_relation"
+  "EDIT_RELATION": "edit_relation",
+  "READ_SELF": "self",
+  "READ_ALL": "all"
 }
