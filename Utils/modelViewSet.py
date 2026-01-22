@@ -134,12 +134,12 @@ class RModelViewSet(ModelViewSet):
         return self.model.objects.all()
     @action(detail=False, methods=['get'], url_path='get')
     def get(self, request):
-        serializer = PageArg(data=request.data)
+        serializer = PageArg(data=request.GET)
         if serializer.is_valid():
             try:
                 query = self.search(request)
                 total = query.count()
-                if serializer.validated_data['all']:
+                if not serializer.validated_data.get('all',None):
                     page_size = min(serializer.validated_data[KEY.PAGE_SIZE], 100)
                     paginator = Paginator(query, page_size)
                     query = paginator.page(serializer.validated_data[KEY.PAGE_NUMBER]).object_list
@@ -159,7 +159,7 @@ class DModelViewSet(ModelViewSet):
         """
         默认允许（或默认拒绝），子类可选择性重写
         """
-        return True
+        return False
     @action(detail=False, methods=['post'], url_path='del')
     def delete(self, request):
         serializer = IDListSerializer(data=request.data)
@@ -177,7 +177,7 @@ class DModelViewSet(ModelViewSet):
                 self.out_log(request, act, True)
                 return Response({**RESPONSE__200__SUCCESS}, status=status.HTTP_200_OK)
         self.out_log(request, act, False)
-        return Response({**RESPONSE__400__FAILED, KEY.ERROR: serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({**RESPONSE__400__FAILED, KEY.ERROR: f"{self.audit_object}受保护"}, status=status.HTTP_400_BAD_REQUEST)
 
 class CURDModelViewSet(CModelViewSet,UModelViewSet,RModelViewSet,DModelViewSet):
     pass
@@ -206,7 +206,7 @@ def create_base_view_set(
     return type(class_name, (view_set_class,), {
         'model': model,
         'serializer_class': serializer_class,
-        'permission_class': permission_class,
+        'permission_classes': permission_class,
         'log_class': log_class,
         'audit_object': audit_object,
         'permission_mapping': perm_mapping,

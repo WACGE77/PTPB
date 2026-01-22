@@ -3,9 +3,9 @@ import re
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from Utils.Const import READ_ONLY_FILED, WRITE_ONLY_FILED
+from Utils.Const import READ_ONLY_FILED, WRITE_ONLY_FILED, KEY
 from .models import User,Role,Permission
-from Utils.public import verify_password, encrypt_password
+from Utils.before import verify_password, encrypt_password
 
 from Utils.modelViewSet import ERRMSG
 
@@ -102,7 +102,6 @@ class UserSerializer(serializers.ModelSerializer):
 class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
-        fields = "__all__"
         exclude = ['perms']
         extra_kwargs = {
             'id':READ_ONLY_FILED,
@@ -133,12 +132,24 @@ class RoleSerializer(serializers.ModelSerializer):
             "update_date":READ_ONLY_FILED,
         }
 class RolePermissionSerializer(serializers.ModelSerializer):
+    perms = serializers.PrimaryKeyRelatedField(
+        queryset=Permission.objects.all(),
+        many=True,
+        required=False  # 如果允许为空，否则设为 True
+    )
     class Meta:
         model = Role
         fields = ['id','perms']
-        extra_kwargs = {
-            'id':READ_ONLY_FILED,
-        }
+        read_only_fields = ['id']
+    def validate(self,attrs):
+        perms = attrs.get('perms')
+        if not perms or any(16 <= perm.id <= 23 for perm in perms):
+            raise serializers.ValidationError({KEY.PERMISSIONS:ERRMSG.ERROR.PERMISSION})
+        return attrs
+    def save(self):
+        if self.instance:
+            perms = self.validated_data['perms']
+            self.instance.perms.set(perms)
 class PermissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Permission

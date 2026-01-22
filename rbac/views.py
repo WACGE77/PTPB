@@ -12,7 +12,7 @@ from .serialization import LoginSerializer, ChangePasswordSerializer, \
     UserSerializer, PermissionSerializer, RoleSerializer, RolePermissionSerializer
 
 from Utils.modelViewSet import CURDModelViewSet, create_base_view_set
-from Utils.public import verify_password, get_token_response
+from Utils.before import verify_password, get_token_response
 from Utils.Const import PERMISSIONS,METHODS,AUDIT,RESPONSE__200__SUCCESS, \
     RESPONSE__400__FAILED, KEY, RESPONSE, ERRMSG
 # Create your views here.
@@ -28,15 +28,15 @@ class LoginView(APIView):
         password = login_serializer.validated_data.get('password')
 
         user = get_object_or_404(User, account=account)
-
+        request.user = user
         if not user.status:
             raise PermissionDenied(detail=ERRMSG.ERROR.DISABLED)
 
         if not verify_password(password, user.password):
             OperaLogging.login(request, 'failed')
             return Response({
-                KEY.CODE: RESPONSE.P_401_UNAUTHORIZED,
-                KEY.ERROR: ERRMSG.ERR0R.PASSWORD
+                **RESPONSE.P_401_UNAUTHORIZED,
+                KEY.ERROR: ERRMSG.ERROR.PASSWORD
             }, status=status.HTTP_401_UNAUTHORIZED)
 
         res = get_token_response(user,{**RESPONSE__200__SUCCESS})
@@ -72,6 +72,7 @@ _UserManagerViewSet = create_base_view_set(
     AUDIT.CLASS.USER,
     protect_key='protected',
 )
+
 class UserManagerViewSet(_UserManagerViewSet):
     permission_mapping = {
         **_UserManagerViewSet.permission_mapping,
@@ -80,7 +81,7 @@ class UserManagerViewSet(_UserManagerViewSet):
     }
     @action(detail=False, methods=['post'],url_path='reset_password')
     def reset_password(self, request):
-        serializer = ChangePasswordSerializer(data=request.data)
+        serializer = ChangePasswordSerializer(data=request.data,context={'user': request.user})
         if serializer.is_valid():
             serializer.save()
             return Response({**RESPONSE__200__SUCCESS}, status=status.HTTP_200_OK)
@@ -90,7 +91,6 @@ class UserManagerViewSet(_UserManagerViewSet):
         detail = UserSerializer(request.user).data
         detail[KEY.IP] = request.auth.get('ip')
         return Response({**RESPONSE__200__SUCCESS,KEY.SUCCESS:detail}, status=status.HTTP_200_OK)
-
 _RoleManagerViewSet = create_base_view_set(
     Role,
     RoleSerializer,
@@ -116,15 +116,16 @@ class RoleManagerViewSet(_RoleManagerViewSet):
         many_col = self.relation_serializer_class(instance).data
         return Response({**RESPONSE__200__SUCCESS, KEY.SUCCESS: many_col}, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=['get'], url_path='edit/permission')
-    def edit_relation(self, request):
+    @action(detail=False, methods=['post'], url_path='edit/permission')
+    def edit_relations(self, request):
         pk = request.data.get('id')
         instance = get_object_or_404(self.model, pk=pk)
         if self.is_protected(instance):
             return Response({**RESPONSE__400__FAILED, KEY.ERROR: ERRMSG.PROTECTED}, status=status.HTTP_400_BAD_REQUEST)
         act = AUDIT.ACTION.EDIT + self.audit_object + str(pk) + self.relation_audit_object
-        serializer = self.relation_serializer_class(instance)
-        return self.add_or_edit(request, serializer, act)
+        serializer = self.relation_serializer_class(instance,data=request.data)
+        _,res = self.add_or_edit(request, serializer, act)
+        return res
 
 class PermissionListView(APIView):
     permission_classes = [BasePermission]

@@ -1,8 +1,9 @@
+from Utils.before import get_client_ip
 from .models import LoginLog,OperationLog,SessionLog
 class OperaLogging:
     @staticmethod
     def login(request,status:str):
-        ip = request.auth.get('ip','')
+        ip = get_client_ip(request)
         LoginLog.objects.create(ip=ip,user=request.user,status=status)
 
     @staticmethod

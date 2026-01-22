@@ -42,7 +42,7 @@
   "ERROR": {
     "ARG": "错误参数",
     "PASSWORD": "密码错误",
-    "NEW_ORL_EQ": "新旧密码不能相同",
+    "NEW_OLD_EQ": "新旧密码不能相同",
     "DISABLED": "用户被禁用，请及时联系管理员",
     "PERMISSION": "权限错误"
   },

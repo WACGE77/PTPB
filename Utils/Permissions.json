@@ -19,8 +19,8 @@
       "READ": "system.role.read"
     },
     "PERMISSIONS": {
-      "READ": "system.permissions.read",
-      "UPDATE": "system.permissions.update"
+      "READ": "system.permission.read",
+      "UPDATE": "system.permission.update"
     }
   },
   "RESOURCE": {

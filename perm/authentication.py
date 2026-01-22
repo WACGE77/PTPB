@@ -7,7 +7,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 from Utils.Const import ERRMSG, METHODS
 from resource.serialization import ResourcePermissionSerializer
 from .models import BaseAuth, ResourceGroupAuth
-from Utils.public import get_client_ip
+from Utils.before import get_client_ip
 from rbac.models import User
 
 class TokenAuthorization(BaseAuthentication):
