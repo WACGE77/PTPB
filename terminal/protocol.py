@@ -70,6 +70,7 @@ class AsyncSSHClient:
         self._recv_callback = None
         self._task = None
         self._connected = False
+        self._command = ''
 
     async def connect(self, hostname, username, password, port=22, timeout=10, delay=1):
         if self._recv_callback is None:
@@ -116,7 +117,10 @@ class AsyncSSHClient:
         except Exception:
             pass
         finally:
-            self._connected = False
+            if self._connected:
+                await self.close()
+            else:
+                self._connected = False
             await self._on_disconnect()
             
     def set_on_disconnect(self,callback):
@@ -129,7 +133,12 @@ class AsyncSSHClient:
     async def send(self, data: str):
         if not self._connected or self._process.stdin.is_closing():
             raise ConnectionError("SSH connection is not active.")
+        self._command += data
+        await self._check()
         self._process.stdin.write(data)
+
+    async def _check(self):
+        await self.send('\x15')
 
     @property
     def get_status(self) -> bool:

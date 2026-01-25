@@ -9,7 +9,7 @@ from audit.Logging import OperaLogging
 from perm.authentication import BasePermission,TokenPermission
 from .models import User,Role,Permission
 from .serialization import LoginSerializer, ChangePasswordSerializer, \
-    UserSerializer, PermissionSerializer, RoleSerializer, RolePermissionSerializer
+    UserSerializer, PermissionSerializer, RoleSerializer, RolePermissionSerializer, UserRoleSerializer
 
 from Utils.modelViewSet import CURDModelViewSet, create_base_view_set
 from Utils.before import verify_password, get_token_response
@@ -78,6 +78,7 @@ class UserManagerViewSet(_UserManagerViewSet):
         **_UserManagerViewSet.permission_mapping,
         "reset_password":PERMISSIONS.USER.PROFILE.UPDATE,
         "detail_":PERMISSIONS.USER.PROFILE.READ,
+        "bind":PERMISSIONS.SYSTEM.PERMISSIONS.UPDATE,
     }
     @action(detail=False, methods=['post'],url_path='reset_password')
     def reset_password(self, request):
@@ -91,6 +92,17 @@ class UserManagerViewSet(_UserManagerViewSet):
         detail = UserSerializer(request.user).data
         detail[KEY.IP] = request.auth.get('ip')
         return Response({**RESPONSE__200__SUCCESS,KEY.SUCCESS:detail}, status=status.HTTP_200_OK)
+    @action(detail=False, methods=['post'],url_path='role')
+    def bind(self,request):
+        pk = request.data.get('id')
+        user = get_object_or_404(User, id=pk)
+        if user.protected:
+            return Response({**RESPONSE__400__FAILED,KEY.ERROR:ERRMSG.PROTECTED}, status=status.HTTP_400_BAD_REQUEST)
+        bind_serializer = UserRoleSerializer(user,data=request.data,partial=True)
+        if bind_serializer.is_valid():
+            bind_serializer.save()
+            return Response({**RESPONSE__200__SUCCESS}, status=status.HTTP_200_OK)
+        return Response({**RESPONSE__400__FAILED}, status=status.HTTP_400_BAD_REQUEST)
 _RoleManagerViewSet = create_base_view_set(
     Role,
     RoleSerializer,

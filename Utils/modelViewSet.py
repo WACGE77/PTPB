@@ -88,7 +88,7 @@ class ModelViewSet(ViewSet):
 
 class CModelViewSet(ModelViewSet):
 
-    def add_callback(self,instance):
+    def add_after(self,instance):
         pass
     @action(detail=False, methods=['post'], url_path='add')
     def add(self, request):
@@ -96,12 +96,12 @@ class CModelViewSet(ModelViewSet):
         act = AUDIT.ACTION.ADD + self.audit_object
         instance,res = self.add_or_edit(request, serializer, act)
         if instance:
-            self.add_callback(instance)
+            self.add_after(instance)
         return res
 
 class UModelViewSet(ModelViewSet):
 
-    def edit_callback(self,instance):
+    def edit_after(self,instance):
         pass
     def is_protected(self,instance):
         return self.protect_key and hasattr(self.model, self.protect_key) and getattr(instance, self.protect_key)
@@ -116,7 +116,7 @@ class UModelViewSet(ModelViewSet):
         serializer = self.serializer_class(instance, data=request.data, partial=True)
         instance,res = self.add_or_edit(request, serializer, act)
         if instance:
-            self.edit_callback(instance)
+            self.edit_after(instance)
         return res
 
 class RModelViewSet(ModelViewSet):
@@ -154,12 +154,17 @@ class RModelViewSet(ModelViewSet):
         return Response({**RESPONSE__400__FAILED, KEY.ERROR: serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 class DModelViewSet(ModelViewSet):
-    check_error:str = None
     def check(self,id_list):
         """
         默认允许（或默认拒绝），子类可选择性重写
+        ret:dict id:int:{
+                    relation_object:dict{
+                        relation_ids:[]
+                    }
+                }
         """
         return False
+
     @action(detail=False, methods=['post'], url_path='del')
     def delete(self, request):
         serializer = IDListSerializer(data=request.data)
@@ -168,7 +173,13 @@ class DModelViewSet(ModelViewSet):
             id_list = serializer.data['id_list']
             remain = self.check(id_list)
             if remain:
-                return Response({**RESPONSE__400__FAILED, KEY.ERROR: f"{remain}{self.check_error}"}, status=status.HTTP_400_BAD_REQUEST)
+                prompt = ""
+                for item,relations in remain.items():
+                    prompt += self.audit_object + str(item) + ERRMSG.RELATION.PROMPT
+                    for obj,ids in relations.items():
+                        prompt += obj + str(ids)
+                    prompt += ERRMSG.RELATION.DELETE + '\n'
+                return Response({**RESPONSE__400__FAILED, KEY.ERROR: prompt}, status=status.HTTP_400_BAD_REQUEST)
             queryset = self.model.objects.filter(id__in=id_list)
             if self.protect_key and hasattr(self.model, self.protect_key):
                 queryset = queryset.exclude(**{self.protect_key: True})

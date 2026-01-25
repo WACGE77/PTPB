@@ -99,6 +99,14 @@ class UserSerializer(serializers.ModelSerializer):
             attrs['password'] = encrypt_password(attrs['password'])
         return attrs
 
+class UserRoleSerializer(serializers.ModelSerializer):
+    roles = serializers.PrimaryKeyRelatedField(many=True,write_only=True,queryset=Role.objects.all())
+    class Meta:
+        model = User
+        fields = ['id','roles']
+        read_only_fields = ['id']
+
+
 class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role

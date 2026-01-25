@@ -70,7 +70,13 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'perm.authentication.TokenPermission',  # 建议同时设置全局权限
-    ]
+    ],
+    # 核心：只保留JSON渲染器，彻底禁用HTML调试界面
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+    # 可选：全局指定默认Content-Type
+    'DEFAULT_CONTENT_TYPE': 'application/json',
 }
 
 # 允许所有 域名/IP 跨域
@@ -212,7 +218,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 #minutes=15
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": datetime.timedelta(minutes=15),
+    "ACCESS_TOKEN_LIFETIME": datetime.timedelta(days=200),
     'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=7),
 }
 

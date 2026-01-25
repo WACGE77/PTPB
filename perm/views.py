@@ -3,20 +3,19 @@ from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
-from perm.authentication import BaseAuthentication
+from perm.authentication import BasePermission
 from Utils.Const import RESPONSE__200__SUCCESS, RESPONSE__400__FAILED, KEY, ERRMSG, METHODS, PERMISSIONS
 from perm.models import ResourceGroupAuth
 from perm.serialization import ResourceGroupAuthSerializer, ResourceGroupAuthListSerializer
 from rbac.models import Role
 
-
 # Create your views here.
 
 class AuthorizationViewSet(ViewSet):
-    permission_classes = [BaseAuthentication]
+    permission_classes = [BasePermission]
     permission_mapping = {
-        METHODS.GET:PERMISSIONS.SYSTEM.PERMISSIONS.READ,
-        METHODS.EDIT: PERMISSIONS.SYSTEM.PERMISSIONS.EDIT,
+        METHODS.READ:PERMISSIONS.SYSTEM.PERMISSIONS.READ,
+        METHODS.UPDATE: PERMISSIONS.SYSTEM.PERMISSIONS.UPDATE,
     }
     @action(detail=False, methods=['get'],url_name='get')
     def get(self,request):

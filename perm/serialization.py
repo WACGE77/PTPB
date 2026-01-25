@@ -17,7 +17,7 @@ class _GroupSerializer(serializers.Serializer):
         return value
     def validate_permission(self, value):
         if not all(
-            isinstance(i, int) and 16 <= value <= 23
+            isinstance(i, int) and 16 <= i <= 23
             for i in value
         ):
             raise serializers.ValidationError({KEY.PERMISSIONS: ERRMSG.ERROR.PERMISSION})
@@ -42,13 +42,13 @@ class ResourceGroupAuthSerializer(serializers.Serializer):
         return value
     @transaction.atomic
     def save(self, **kwargs):
-        role = Role.object.get(id=self.validated_data['role_id'])
+        role = Role.objects.get(id=self.validated_data['role_id'])
         ResourceGroupAuth.objects.filter(role=role).delete()
         items = []
         for group in self.validated_data['groups']:
-            group_id = group['group_id']
+            group_id = group.get('id', None)
             for permission in group['permission']:
-                items.append(ResourceGroupAuth(role_id=role, group_id=group_id, permission_id=permission))
+                items.append(ResourceGroupAuth(role=role, resource_group_id=group_id, permission_id=permission))
         if items:
             ResourceGroupAuth.objects.bulk_create(
                 items,
@@ -60,4 +60,3 @@ class ResourceGroupAuthListSerializer(serializers.ModelSerializer):
     class Meta:
         model = ResourceGroupAuth
         fields = '__all__'
-        read_only_fields = '__all__'

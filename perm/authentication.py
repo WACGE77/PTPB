@@ -1,4 +1,4 @@
-
+from django.shortcuts import get_object_or_404
 from rest_framework import permissions
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import PermissionDenied
@@ -64,37 +64,54 @@ class ResourcePermission(TokenPermission):
     def auth(self,request,view):
         super().auth(request, view)
         permission_code = get_code(view)
-        group = request.data.get('group')
+        group = request.GET.get('group') or request.data.get('group')
+        if not group:
+            raise PermissionDenied(detail=ERRMSG.ERROR.ARG,code=403)
         if not ResourceGroupAuth.objects.filter(
             permission__code=permission_code,
-            role__in=request.roles.all(),
-            resource_group=group
+            role__in=request.user.roles.all(),
+            resource_group_id=group
         ).exists():
             raise PermissionDenied(detail='您无当前权限访问',code=403)
     def has_permission(self, request, view):
         self.auth(request, view)
         return True
 
-class ResourceEditPermission(ResourcePermission):
+class ResourceEditPermission(TokenPermission):
     def auth(self,request,view):
         serializer = ResourcePermissionSerializer(data=request.data)
         if not serializer.is_valid():
             raise PermissionDenied(detail=ERRMSG.ERROR.ARG,code=403)
-        model = view.model
-        resource = model.objects.get(id=serializer.validated_data['id'])
-        group = serializer.validated_data['group']
-        if resource.group == group:
-            super().auth(request,view)
+        pk = serializer.validated_data.get('id')
+        resource = get_object_or_404(view.model, pk=pk)
+        group = serializer.validated_data.get('group')
+        if group is None or resource.group == group:
+            permission_code = get_code(view)
+            if not ResourceGroupAuth.objects.filter(
+                    permission__code=permission_code,
+                    role__in=request.user.roles.all(),
+                    resource_group=resource.group
+            ).exists():
+                raise PermissionDenied(detail='您无当前权限访问', code=403)
             return
+        if hasattr(resource,'vouchers') and resource.vouchers.exists():
+            raise PermissionDenied(detail=ERRMSG.SWITCH.RELATION, code=403)
+        else:
+            try:
+                if resource.resources.exists():
+                    raise PermissionDenied(detail=ERRMSG.SWITCH.RELATION, code=403)
+            except Exception:
+                pass
+
         delete_perm_code = view.permission_const_box.DELETE
         add_perm_code = view.permission_const_box.CREATE
         if not (ResourceGroupAuth.objects.filter(
             permission__code=delete_perm_code,
-            role__in=request.roles.all(),
+            role__in=request.user.roles.all(),
             resource_group=resource.group
         ).exists() and ResourceGroupAuth.objects.filter(
             permission__code=add_perm_code,
-            role__in=request.roles.all(),
+            role__in=request.user.roles.all(),
             resource_group=group
         ).exists()):
             raise PermissionDenied(detail=ERRMSG.SWITCH.GROUP,code=403)

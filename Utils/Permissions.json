@@ -13,10 +13,10 @@
       "READ": "system.role.read"
     },
     "RESOURCE_GROUP": {
-      "CREATE": "system.role.create",
-      "DELETE": "system.role.delete",
-      "UPDATE": "system.role.update",
-      "READ": "system.role.read"
+      "CREATE": "system.resource_group.create",
+      "DELETE": "system.resource_group.delete",
+      "UPDATE": "system.resource_group.update",
+      "READ": "system.resource_group.read"
     },
     "PERMISSIONS": {
       "READ": "system.permission.read",

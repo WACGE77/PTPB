@@ -14,7 +14,7 @@ class Resource(models.Model):
     update_date = models.DateTimeField(auto_now=True)
     vouchers = models.ManyToManyField('resource.Voucher', related_name='resources', blank=True)
     group = models.ForeignKey('ResourceGroup', on_delete=models.SET_DEFAULT,default=1, related_name='resources')
-    protocol = models.ForeignKey('Protocol', on_delete=models.SET_NULL, null=True, related_name='resources')
+    protocol = models.ForeignKey('Protocol', on_delete=models.CASCADE, related_name='resources')
     class Meta:
         db_table = 'resource'
         constraints = [
