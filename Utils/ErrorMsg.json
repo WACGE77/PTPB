@@ -30,7 +30,9 @@
     "PROTOCOL": "协议错误"
   },
   "ABSENT": {
-    "ROLE": "角色不存在"
+    "ROLE": "角色不存在",
+    "RESOURCE":"资源不存在",
+    "VOUCHER": "凭证不存在"
   },
   "EXCLUSION": {
     "IPV4_IPV6": "ipv4与ipv6只能填写一个"
@@ -50,5 +52,8 @@
   "RELATION": {
     "PROMPT": "有关联",
     "DELETE": "无法删除"
+  },
+  "TIMEOUT": {
+    "CONNECT": "连接超时"
   }
 }

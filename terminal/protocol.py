@@ -1,127 +1,56 @@
-import socket
 import asyncio
 import asyncssh
-import paramiko
-import time
-import threading
-class SyncSSHClient:
-    
-    def __init__(self):
-        self._client = paramiko.SSHClient()
-        self._client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self._hostname = None
-        self._username = None
-        self._password = None
-        self._connect_status = None
-        self._recv_backcall = None
-        self._recv_thread = None
-        self._tty = None
-        self._recv_buffer_size = 1024
-    
-    def connect(self, hostname, username, password,port=22, timeout=10,delay=1):
-        if self._recv_backcall is None:
-            raise Exception("recv_backcall is None, please set recv_backcall first")
-        self._hostname = hostname
-        self._username = username
-        self._password = password
-        self._client.connect(hostname, port, username, password, timeout=timeout)
-        self._tty = self._client.invoke_shell()
-        time.sleep(delay)
-        welcome = self._tty.recv(self._recv_buffer_size).decode()
-        self._recv_backcall(welcome)
-        self._connect_status = self._tty.active
-        self._recv_thread = threading.Thread(target=self._recv_thread_func)
-        self._recv_thread.start()
-
-
-    def _recv_thread_func(self):
-        while self._connect_status:
-            if self._tty.recv_ready():
-                data = self._tty.recv(self._recv_buffer_size).decode()
-                self._recv_backcall(data)
-
-
-    def get_status(self):
-        return self._connect_status
-
-    def send(self, data):
-        try:
-            self._tty.send(data)
-        except socket.error as e:
-            self._connect_status = False
-
-    def set_recv_callback(self, backcall):
-        self._recv_backcall = backcall
-
-    def close(self):
-        self._connect_status = False
-        self._tty.close()
-        self._client.close()
-        self._recv_thread.join()
-        self._recv_backcall = None
-        self._recv_thread = None
-        self._tty = None
-        self._client = None
 
 class AsyncSSHClient:
     def __init__(self):
         self._conn = None
         self._process = None
-        self._recv_callback = None
-        self._task = None
+        self._recv_task = None
+        self._lock = asyncio.Lock()
         self._connected = False
-        self._command = ''
+        self._on_disconnect = None
+        self._recv_callback = None
 
     async def connect(self, hostname, username, password, port=22, timeout=10, delay=1):
-        if self._recv_callback is None:
-            raise ValueError("recv_callback is not set. Please call set_recv_callback() first.")
+        async with self._lock:
+            if self._recv_callback is None:
+                raise ValueError("recv_callback is not set. Please call set_recv_callback() first.")
+            if self._connected:
+                raise ValueError("SSH connection is already active.")
 
-        try:
-            self._conn = await asyncio.wait_for(
-                asyncssh.connect(
-                    hostname,
-                    port=port,
-                    username=username,
-                    password=password,
-                    known_hosts=None  # 相当于 AutoAddPolicy
-                ),
-                timeout=timeout
-            )
-            self._process = await self._conn.create_process(
-                term_type='xterm',
-                term_size=(80, 24),
-            )
-            self._connected = True
+            try:
+                self._conn = await asyncio.wait_for(
+                    asyncssh.connect(
+                        hostname,
+                        port=port,
+                        username=username,
+                        password=password,
+                        known_hosts=None  # 相当于 AutoAddPolicy
+                    ),
+                    timeout=timeout
+                )
+                self._process = await self._conn.create_process(
+                    term_type='xterm',
+                    term_size=(80, 24),
+                )
+                self._connected = True
 
-            # 等待初始欢迎信息（可选）
-            await asyncio.sleep(delay)
-            if self._process.stdout.at_eof():
-                welcome = ""
-            else:
-                welcome = await self._process.stdout.read(1024)
-            await self._recv_callback(welcome)
+                self._recv_task = asyncio.create_task(self._recv_loop())
 
-            # 启动接收任务
-            self._task = asyncio.create_task(self._recv_loop())
-
-        except Exception as e:
-            self._connected = False
-            raise e
+            except Exception as e:
+                self._connected = False
+                raise e
     
     async def _recv_loop(self):
         try:
-            while self._connected and not self._process.stdout.at_eof():
+            while self._connected:
                 data = await self._process.stdout.read(1024)
                 if data:
                     await self._recv_callback(data)
         except Exception:
             pass
         finally:
-            if self._connected:
-                await self.close()
-            else:
-                self._connected = False
-            await self._on_disconnect()
+            asyncio.create_task(self.close())
             
     def set_on_disconnect(self,callback):
         self._on_disconnect = callback
@@ -133,12 +62,7 @@ class AsyncSSHClient:
     async def send(self, data: str):
         if not self._connected or self._process.stdin.is_closing():
             raise ConnectionError("SSH connection is not active.")
-        self._command += data
-        await self._check()
         self._process.stdin.write(data)
-
-    async def _check(self):
-        await self.send('\x15')
 
     @property
     def get_status(self) -> bool:
@@ -157,25 +81,31 @@ class AsyncSSHClient:
             pass
 
     async def close(self):
-        self._connected = False
-        if self._task and not self._task.done():
-            self._task.cancel()
-            try:
-                await self._task
-            except asyncio.CancelledError:
-                pass
-        if self._process:
-            self._process.stdin.close()
-            self._process.kill()
-        if self._conn:
-            self._conn.close()
-            await self._conn.wait_closed()
+        async with self._lock:
+            if not self._connected:
+                return
+            self._connected = False
+            if self._recv_task and not self._recv_task.done():
+                self._recv_task.cancel()
+                try:
+                    await self._recv_task
+                except asyncio.CancelledError:
+                    pass
+            if self._process:
+                self._process.stdin.close()
+                self._process.kill()
+            if self._conn:
+                self._conn.close()
+                await self._conn.wait_closed()
 
-        # 清理引用
-        self._conn = None
-        self._process = None
-        self._task = None
-        self._recv_callback = None
+            # 清理引用
+            self._conn = None
+            self._process = None
+            self._recv_task = None
+            self._recv_callback = None
+
+            if self._on_disconnect:
+                self._on_disconnect()
 
 def my_recv_backcall(data):
     print(data,end='',flush=True)

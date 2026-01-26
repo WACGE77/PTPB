@@ -1,10 +1,101 @@
+from channels.db import database_sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
+from django.db.models import Q
+from rest_framework_simplejwt.tokens import AccessToken
+
+from Utils.Const import ERRMSG, PERMISSIONS
+from audit.Logging import OperaLogging
+from perm.models import ResourceGroupAuth
+from rbac.models import User
+from resource.models import Resource, Voucher
+from terminal.protocol import AsyncSSHClient
+from terminal.serialization import SSHAuthSerializer
+
+
+class SSHConsumer(AsyncWebsocketConsumer):
+    resource_permission = PERMISSIONS.RESOURCE.SELF.READ
+    voucher_permission = PERMISSIONS.RESOURCE.VOUCHER.READ
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = None
+        self.resource = None
+        self.voucher = None
+        self.pty = None
+
+    @database_sync_to_async
+    def auth(self,params):
+        serializer = SSHAuthSerializer(data=params)
+        if not serializer.is_valid():
+            return False,serializer.errors
+        self.resource = Resource.objects.get(id=serializer.validated_data['resource'])
+        self.voucher = Voucher.objects.get(id=serializer.validated_data['voucher'])
+        if self.resource.group != self.voucher.group:
+            return False,ERRMSG.ERROR.ARG
+        token_str = serializer.validated_data['token']
+        try:
+            token = AccessToken(token_str)
+            pk = token.payload['user_id']
+            user = User.objects.get(pk=pk)
+        except Exception:
+            return False,ERRMSG.ERROR.PERMISSION
+        group = self.resource.group
+        query = set(ResourceGroupAuth.objects.filter(
+            Q(permission__code=self.resource_permission) | Q(permission__code=self.voucher_permission),
+            group_id=group,
+            role__in = user.roles.all()
+        ))
+        if len(query) != 2:
+            return False,ERRMSG.ERROR.PERMISSION
+        return True,None
+
+    async def pty_connect(self):
+        self.pty = AsyncSSHClient()
+        host = self.resource.ipv4_address or self.resource.ipv6_address
+        password_mode = self.voucher.password or None
+        try:
+            if password_mode:
+                await self.pty.connect(host, username=self.voucher.username, password=self.voucher.password,
+                                       port=self.resource.port)
+            else:
+                pass
+        except Exception:
+            return False,ERRMSG.TIMEOUT.CONNECT
+        return True,None
+
+
+    @database_sync_to_async
+    def session_log(self,user,ip,resource,voucher,status,log = None):
+        return OperaLogging.session(user,ip,resource,voucher,status,log)
+
+    async def disable(self,msg):
+        await self.send(msg)
+        await self.close()
+
+    async def connect(self):
+        params = self.scope['url_route']['kwargs']
+        auth,msg = self.auth(params)
+        await self.accept()
+        if not auth:
+            await self.disable(msg)
+            return
+        conned,msg = self.pty_connect()
+        if not conned:
+            await self.disable(msg)
+            return
+
+    async def disconnect(self, close_code):
+        pass
+
+    async def receive(self, text_data=None, bytes_data=None):
+        pass
+
 # import asyncio
 # import json
 # from django.utils import timezone
 # from rbac.models import User
 # from resource.models import Resource,ResourceVoucher
 # from perm.models import BaseAuth,ResourceAuth,ResourceVoucherAuth
-# from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.generic.websocket import AsyncWebsocketConsumer
 # from rest_framework_simplejwt.tokens import AccessToken
 # from channels.db import database_sync_to_async
 # from .protocol import AsyncSSHClient
@@ -160,6 +251,3 @@
 #         except Exception:
 #             return None
 #
-#     @database_sync_to_async
-#     def session_log(self,user,ip,resource,voucher,status,log = None):
-#         return OperaLogging.session(user,ip,resource,voucher,status,log)
