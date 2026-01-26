@@ -9,12 +9,14 @@ class SSHAuthSerializer(serializers.Serializer):
         queryset=Resource.objects.all(),
         error_messages={
             'does_not_exist': ERRMSG.ABSENT.RESOURCE
-        }
+        },
+        many=True,
     )
     voucher = serializers.PrimaryKeyRelatedField(
         queryset=Voucher.objects.all(),
         error_messages={
             'does_not_exist': ERRMSG.ABSENT.VOUCHER
-        }
+        },
+        many = True,
     )
     token = serializers.CharField(read_only=True)

@@ -45,13 +45,16 @@ class AsyncSSHClient:
         try:
             while self._connected:
                 data = await self._process.stdout.read(1024)
-                if data:
-                    await self._recv_callback(data)
+                if not data:
+                    break
+                await self._recv_callback(data)
+
         except Exception:
             pass
         finally:
             asyncio.create_task(self.close())
-            
+
+
     def set_on_disconnect(self,callback):
         self._on_disconnect = callback
 
@@ -72,7 +75,6 @@ class AsyncSSHClient:
         if not self._process or not self._connected:
             return
         try:
-
             await self._process.channel.change_terminal_size(
                 width=cols,
                 height=rows
@@ -85,6 +87,8 @@ class AsyncSSHClient:
             if not self._connected:
                 return
             self._connected = False
+            if self._on_disconnect:
+                await self._on_disconnect()
             if self._recv_task and not self._recv_task.done():
                 self._recv_task.cancel()
                 try:
@@ -97,15 +101,13 @@ class AsyncSSHClient:
             if self._conn:
                 self._conn.close()
                 await self._conn.wait_closed()
-
             # 清理引用
             self._conn = None
             self._process = None
             self._recv_task = None
             self._recv_callback = None
 
-            if self._on_disconnect:
-                self._on_disconnect()
+
 
 def my_recv_backcall(data):
     print(data,end='',flush=True)

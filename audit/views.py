@@ -15,26 +15,26 @@ class _AuditViewSet(RModelViewSet):
             query = query.filter(user=request.user)
         return query
 
-class LoginLogViewSet(RModelViewSet):
+class LoginLogViewSet(_AuditViewSet):
     model = LoginLog
     serializer_class = LoginLogSerializer
     permission_mapping = {
         METHODS.READ_ALL : PERMISSIONS.AUDIT.LOGIN.READ,
-        METHODS.READ_SELF : PERMISSIONS.USER.PROFILE
+        METHODS.READ_SELF : PERMISSIONS.USER.PROFILE.READ
     }
 
-class OperationLogViewSet(RModelViewSet):
+class OperationLogViewSet(_AuditViewSet):
     model = OperationLog
     serializer_class = OperationLogSerializer
     permission_mapping = {
         METHODS.READ_ALL : PERMISSIONS.AUDIT.OPERATION.READ,
-        METHODS.READ_SELF : PERMISSIONS.USER.PROFILE
+        METHODS.READ_SELF : PERMISSIONS.USER.PROFILE.READ
     }
 
-class SessionLogViewSet(RModelViewSet):
+class SessionLogViewSet(_AuditViewSet):
     model = SessionLog
     serializer_class = SessionLogSerializer
     permission_mapping = {
         METHODS.READ_ALL: PERMISSIONS.AUDIT.SESSION.READ,
-        METHODS.READ_SELF: PERMISSIONS.USER.PROFILE
+        METHODS.READ_SELF: PERMISSIONS.USER.PROFILE.READ
     }

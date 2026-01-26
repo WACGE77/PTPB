@@ -130,11 +130,11 @@ class AuditPermission(TokenPermission):
             )
         else:
             query = query.filter(
-                permission__code=view.permission_mapping.get(METHODS.READ_ALL), role__in=request.user.role.all()
+                permission__code=view.permission_mapping.get(METHODS.READ_ALL)
             )
         if not query.exists():
             raise PermissionDenied(detail="您无当前权限访问",code=403)
 
-    def has_object_permission(self, request, view, obj):
+    def has_permission(self, request, view):
         self.auth(request, view)
         return True
