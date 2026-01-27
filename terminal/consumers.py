@@ -91,13 +91,13 @@ class SSHConsumer(AsyncWebsocketConsumer):
             while True:
                 data = await self.data_queue.get()
                 type_ = data.get('type')
+                content = data.get('data')
                 if type_ == 1:
-                    col = data.get('col')
-                    row = data.get('row')
+                    col = content.get('cols')
+                    row = content.get('rows')
                     await self.resize(col, row)
                 elif type_ == 2:
-                    command = data.get('data')
-                    await self.pty.send(command)
+                    await self.pty.send(content)
         except asyncio.CancelledError:
             while not self.data_queue.empty():
                 try:
