@@ -38,7 +38,7 @@ class Voucher(models.Model):
     update_date = models.DateTimeField(auto_now=True)
     group = models.ForeignKey('ResourceGroup', on_delete=models.SET_DEFAULT,default=1, related_name='ssh_vouchers')
     class Meta:
-        db_table = 'ssh_voucher'
+        db_table = 'voucher'
         constraints = [
             models.CheckConstraint(
                 condition = (
