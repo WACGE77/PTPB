@@ -152,22 +152,22 @@ ASGI_APPLICATION = 'BackEnd.asgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-        #'NAME': 'E:/sqlite/db.sqlite3',
-    },
     # 'default': {
-    #     'ENGINE': 'django.db.backends.mysql',
-    #     'NAME': 'ptp',      # 数据库名
-    #     'USER': 'root',           # 用户名
-    #     'PASSWORD': '936949426',       # 密码
-    #     'HOST': '127.0.0.1',               # 主机
-    #     'PORT': '3306',                    # 端口
-    #     'OPTIONS': {
-    #         'charset': 'utf8mb4',
-    #     },
-    # }
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': BASE_DIR / 'db.sqlite3',
+    #     #'NAME': 'E:/sqlite/db.sqlite3',
+    # },
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'ptp',      # 数据库名
+        'USER': 'root',           # 用户名
+        'PASSWORD': '936949426',       # 密码
+        'HOST': '127.0.0.1',               # 主机
+        'PORT': '3306',                    # 端口
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
+    }
 }
 
 

@@ -35,7 +35,7 @@
     "VOUCHER": "凭证不存在"
   },
   "EXCLUSION": {
-    "IPV4_IPV6": "ipv4与ipv6只能填写一个"
+    "IPV4_IPV6": "ipv4与ipv6必须且只能填写一个"
   },
   "SWITCH": {
     "GROUP": "无切换组权限,即添加新组和删除旧组的组合权限",

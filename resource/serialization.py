@@ -1,6 +1,6 @@
+import ipaddress
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-
 from Utils.Const import ERRMSG, KEY, WRITE_ONLY_FILED
 from resource.models import Resource, Voucher, ResourceGroup
 
@@ -84,10 +84,31 @@ class ResourceSerializer(serializers.ModelSerializer):
                 }
             }
         }
+    def validate_ipv4_address(self,value):
+        if not value:
+            return value
+        try:
+            ipaddress.IPv4Address(value)
+            return value
+        except ipaddress.AddressValueError:
+            raise serializers.ValidationError({'ipv4_address':ERRMSG.INVALID.IP})
+    def validate_ipv6_address(self,value):
+        if not value:
+            return value
+        try:
+            ipaddress.IPv6Address(value)
+            return value
+        except ipaddress.AddressValueError:
+            raise serializers.ValidationError({'ipv6_address':ERRMSG.INVALID.IP})
     def validate(self, attrs):
-        if attrs.get('ipv4_address') and attrs.get('ipv6_address'):
+        ipv4_address = attrs.get('ipv4_address',getattr(self.instance,'ipv4_address',None))
+        ipv6_address = attrs.get('ipv6_address',getattr(self.instance,'ipv6_address',None))
+        attrs.pop('ipv4_address', '')
+        attrs.pop('ipv6_address', '')
+        if ipv4_address and ipv6_address or (not ipv4_address and not ipv6_address):
             raise serializers.ValidationError({KEY.IP:ERRMSG.EXCLUSION.IPV4_IPV6})
-        attrs['ipv4_address'] = attrs.get('ipv4_address') or None
-        attrs['ipv6_address'] = attrs.get('ipv6_address') or None
+        if ipv4_address:
+            attrs['ipv4_address'] = ipv4_address
+        else:
+            attrs['ipv6_address'] = ipv6_address
         return attrs
-

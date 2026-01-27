@@ -1,3 +1,5 @@
+from django.utils import timezone
+
 from Utils.before import get_client_ip
 from .models import LoginLog,OperationLog,SessionLog
 class OperaLogging:
@@ -16,6 +18,7 @@ class OperaLogging:
     def session(user,ip,resource,voucher,status,sessionLog=None):
         if sessionLog:
             sessionLog.status = status
+            sessionLog.end_time = timezone.now()
             sessionLog.save()
             return sessionLog
         sessionLog = SessionLog(

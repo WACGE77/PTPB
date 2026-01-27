@@ -9,6 +9,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from django.db.models import Q
 from rest_framework_simplejwt.tokens import AccessToken
 from Utils.Const import ERRMSG, PERMISSIONS
+from Utils.before import get_ws_client_ip
 from audit.Logging import OperaLogging
 from perm.models import ResourceGroupAuth
 from rbac.models import User
@@ -22,10 +23,12 @@ class SSHConsumer(AsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = None
+        self.ip = None
         self.resource = None
         self.voucher = None
         self.pty:AsyncSSHClient | None = None
         self.handle_task = None
+        self.log = None
         self.data_queue = Queue()
 
     @database_sync_to_async
@@ -41,14 +44,14 @@ class SSHConsumer(AsyncWebsocketConsumer):
         try:
             token = AccessToken(token_str[0])
             pk = token.payload['user_id']
-            user = User.objects.get(pk=pk)
+            self.user = User.objects.get(pk=pk)
         except Exception:
             return False,ERRMSG.ERROR.PERMISSION
         group = self.resource.group
         query = set(ResourceGroupAuth.objects.filter(
             Q(permission__code=self.resource_permission) | Q(permission__code=self.voucher_permission),
             resource_group=group,
-            role__in = user.roles.all()
+            role__in = self.user.roles.all()
         ))
         if len(query) != 2:
             return False,ERRMSG.ERROR.PERMISSION
@@ -67,15 +70,17 @@ class SSHConsumer(AsyncWebsocketConsumer):
             else:
                 pass
         except Exception:
+            await self.session_log('filed')
             return False,ERRMSG.TIMEOUT.CONNECT
+        await self.session_log('active')
         return True,None
 
     async def resize(self,cols,rows):
         await self.pty.resize(cols,rows)
 
     @database_sync_to_async
-    def session_log(self,user,ip,resource,voucher,status,log = None):
-        return OperaLogging.session(user,ip,resource,voucher,status,log)
+    def session_log(self,status):
+        self.log =  OperaLogging.session(self.user,self.ip,self.resource,self.voucher,status,self.log)
 
     async def disable(self,msg):
         await self.send(str(msg))
@@ -100,9 +105,11 @@ class SSHConsumer(AsyncWebsocketConsumer):
                     self.data_queue.task_done()
                 except asyncio.QueueEmpty:
                     break
+            await self.session_log('close')
 
     async def connect(self):
         params = parse_qs(self.scope['query_string'].decode('utf-8'))
+        self.ip = get_ws_client_ip(self.scope)
         await self.accept()
         auth,msg = await self.auth(params)
         if not auth:
@@ -112,7 +119,7 @@ class SSHConsumer(AsyncWebsocketConsumer):
         if not conned:
             await self.disable(msg)
             return
-        self.handle_task = asyncio.ensure_future(self.handle())
+        self.handle_task = asyncio.create_task(self.handle())
 
     async def disconnect(self, close_code):
         if self.pty and self.pty.get_status:

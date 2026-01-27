@@ -41,6 +41,34 @@ def get_client_ip(request):
     ip = request.META.get('REMOTE_ADDR')
     return ip
 
+
+def get_ws_client_ip(scope):
+    """
+    从 WebSocket scope 中获取真实客户端 IP（兼容代理场景）
+    :param scope: WebSocket 的 scope 字典
+    :return: 真实客户端 IP 字符串
+    """
+    # 步骤1：先尝试从代理头提取（优先）
+    headers = dict(scope['headers'])
+    # 转换头名（Channels 中 headers 的键是 bytes 类型，如 b'x-forwarded-for'）
+    x_forwarded_for = headers.get(b'x-forwarded-for', b'').decode('utf-8')
+    x_real_ip = headers.get(b'x-real-ip', b'').decode('utf-8')
+
+    # 处理 X-Forwarded-For（格式：客户端IP, 代理IP1, 代理IP2...）
+    if x_forwarded_for:
+        # 取第一个非空 IP（避免多个代理的情况）
+        client_ip = x_forwarded_for.split(',')[0].strip()
+        if client_ip:
+            return client_ip
+
+    # 处理 X-Real-IP
+    if x_real_ip:
+        return x_real_ip.strip()
+
+    # 步骤2：无代理时，从 scope['client'] 提取
+    return scope['client'][0]
+
+
 def get_token_response(user, data, code=200) -> Response:
     refresh = RefreshToken.for_user(user)
     access = refresh.access_token
