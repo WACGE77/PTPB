@@ -1,8 +1,10 @@
 from rest_framework.decorators import action
-from Utils.Const import AUDIT, PERMISSIONS, ERRMSG
-from Utils.modelViewSet import create_base_view_set
-from perm.authentication import ResourcePermission, ResourceEditPermission, BasePermission, TokenPermission
+from Utils.Const import AUDIT, PERMISSIONS, ERRMSG, METHODS
+from Utils.modelViewSet import create_base_view_set, CURDModelViewSet
+from perm.authentication import ResourcePermission, ResourceEditPermission, BasePermission, TokenPermission, \
+    ResourceGroupPermission
 from perm.models import ResourceGroupAuth
+from rbac.models import Permission
 from resource.models import Resource, Voucher, ResourceGroup
 from resource.serialization import ResourceSerializer, VoucherSerializer, ResourceGroupSerializer
 from audit.Logging import OperaLogging
@@ -49,20 +51,31 @@ _VoucherViewSet = create_base_view_set(
 class VoucherViewSet(_ResourceCustomizeView,_VoucherViewSet):
     pass
 
-_ResourceGroupViewSet = create_base_view_set(
-    ResourceGroup,
-    ResourceGroupSerializer,
-    [BasePermission],
-    PERMISSIONS.SYSTEM.RESOURCE_GROUP,
-    OperaLogging,
-    AUDIT.CLASS.RESOURCE_GROUP,
-    protect_key='protected',
-)
-class ResourceGroupViewSet(_ResourceGroupViewSet):
+class ResourceGroupViewSet(CURDModelViewSet):
+    permission_classes = [ResourceGroupPermission]
+    protect_key = 'protected'
+    model = ResourceGroup
+    serializer_class = ResourceGroupSerializer
+    log_class = OperaLogging
+    audit_object = AUDIT.CLASS.RESOURCE_GROUP,
+    permission_mapping = {
+        'SYSTEM':{
+            METHODS.CREATE: PERMISSIONS.SYSTEM.RESOURCE_GROUP.CREATE,
+            METHODS.UPDATE: PERMISSIONS.SYSTEM.RESOURCE_GROUP.UPDATE,
+            METHODS.DELETE: PERMISSIONS.SYSTEM.RESOURCE_GROUP.DELETE,
+            METHODS.READ: PERMISSIONS.SYSTEM.RESOURCE_GROUP.READ,
+        },
+        'RESOURCE':{
+            METHODS.CREATE: PERMISSIONS.RESOURCE.GROUP.CREATE,
+            METHODS.UPDATE: PERMISSIONS.RESOURCE.GROUP.UPDATE,
+            METHODS.DELETE: PERMISSIONS.RESOURCE.GROUP.DELETE,
+        }
+    }
+    def add_after(self, instance,**kwargs):
+        perms = Permission.objects.filter(scope='resource')
+        auth = [ResourceGroupAuth(role_id=1,permission=perm,resource_group=instance) for perm in perms]
+        ResourceGroupAuth.objects.bulk_create(auth)
 
-    def add_after(self, instance):
-        perm = [ResourceGroupAuth(role_id=1,permission_id=i,resource_group=instance) for i in range(16,24)]
-        ResourceGroupAuth.objects.bulk_create(perm)
 
     def check(self,id_list):
         ret = dict()

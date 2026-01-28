@@ -10,5 +10,7 @@
   "IP": "ip",
   "PERMISSIONS": "perms",
   "ROLE": "role",
-  "SCOPE": "scope"
+  "SCOPE": "scope",
+  "RESOURCE": "RESOURCE",
+  "SYSTEM": "SYSTEM"
 }

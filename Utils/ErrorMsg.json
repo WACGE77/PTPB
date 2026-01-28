@@ -32,7 +32,8 @@
   "ABSENT": {
     "ROLE": "角色不存在",
     "RESOURCE":"资源不存在",
-    "VOUCHER": "凭证不存在"
+    "VOUCHER": "凭证不存在",
+    "GROUP": "所添加至的组不存在"
   },
   "EXCLUSION": {
     "IPV4_IPV6": "ipv4与ipv6必须且只能填写一个"
@@ -58,5 +59,8 @@
   },
   "SAME":{
     "GROUP": "不同组,禁止使用"
+  },
+  "CONFIG": {
+    "GROUP_LEVEL_MAX": "子组层数已到达最大,可在设置中调整"
   }
 }

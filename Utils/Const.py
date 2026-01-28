@@ -6,7 +6,7 @@ METHODS = Box.from_json(filename='Utils/Method.json')
 RESPONSE = Box.from_json(filename='Utils/Response.json')
 KEY = Box.from_json(filename='Utils/Key.json')
 AUDIT = Box.from_json(filename='Utils/Audit.json')
-
+CONFIG = Box.from_json(filename='Utils/Config.json')
 RESPONSE__200__SUCCESS = {
     KEY.CODE:RESPONSE.P_200_OK.CODE,
     KEY.MSG:RESPONSE.P_200_OK.MSG

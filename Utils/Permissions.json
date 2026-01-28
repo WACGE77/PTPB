@@ -13,10 +13,10 @@
       "READ": "system.role.read"
     },
     "RESOURCE_GROUP": {
-      "CREATE": "system.resource_group.create",
-      "DELETE": "system.resource_group.delete",
-      "UPDATE": "system.resource_group.update",
-      "READ": "system.resource_group.read"
+      "CREATE": "system.group.create",
+      "DELETE": "system.group.delete",
+      "UPDATE": "system.group.update",
+      "READ": "system.group.read"
     },
     "PERMISSIONS": {
       "READ": "system.permission.read",
@@ -35,6 +35,11 @@
       "DELETE": "resource.voucher.delete",
       "UPDATE": "resource.voucher.update",
       "READ": "resource.voucher.read"
+    },
+    "GROUP": {
+      "CREATE": "system.group.create",
+      "DELETE": "system.group.delete",
+      "UPDATE": "system.group.update"
     }
   },
   "AUDIT": {

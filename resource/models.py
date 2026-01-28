@@ -59,8 +59,9 @@ class ResourceGroup(models.Model):
     protected = models.BooleanField(default=False)
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
-    #parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='children')
-    
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
+    level = models.SmallIntegerField(default=0,blank=True,null=True)
+    root = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='leaf')
 
 class Protocol(models.Model):
     #生产固定表

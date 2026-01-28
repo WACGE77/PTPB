@@ -4,7 +4,8 @@ from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.tokens import AccessToken
 
-from Utils.Const import ERRMSG, METHODS
+from Utils.Const import ERRMSG, METHODS, KEY
+from resource.models import ResourceGroup
 from resource.serialization import ResourcePermissionSerializer
 from .models import BaseAuth, ResourceGroupAuth
 from Utils.before import get_client_ip
@@ -67,10 +68,11 @@ class ResourcePermission(TokenPermission):
         group = request.GET.get('group') or request.data.get('group')
         if not group:
             raise PermissionDenied(detail=ERRMSG.ERROR.ARG,code=403)
+        root = get_object_or_404(ResourceGroup, id=group).root
         if not ResourceGroupAuth.objects.filter(
             permission__code=permission_code,
             role__in=request.user.roles.all(),
-            resource_group_id=group
+            resource_group_id=root
         ).exists():
             raise PermissionDenied(detail='您无当前权限访问',code=403)
     def has_permission(self, request, view):
@@ -86,11 +88,12 @@ class ResourceEditPermission(TokenPermission):
         resource = get_object_or_404(view.model, pk=pk)
         group = serializer.validated_data.get('group')
         if group is None or resource.group == group:
+            root = get_object_or_404(ResourceGroup, id=group).root
             permission_code = get_code(view)
             if not ResourceGroupAuth.objects.filter(
                     permission__code=permission_code,
                     role__in=request.user.roles.all(),
-                    resource_group=resource.group
+                    resource_group=root
             ).exists():
                 raise PermissionDenied(detail='您无当前权限访问', code=403)
             return
@@ -134,6 +137,34 @@ class AuditPermission(TokenPermission):
             )
         if not query.exists():
             raise PermissionDenied(detail="您无当前权限访问",code=403)
+
+    def has_permission(self, request, view):
+        self.auth(request, view)
+        return True
+
+class ResourceGroupPermission(TokenPermission):
+    def auth(self,request,view):
+        super().auth(request, view)
+        level = request.GET.get('level') or request.data.get('level')
+        if not level:
+            permission_code = view.permission_mapping.get(KEY.SYSTEM).get(view.action,None)
+            auth = BaseAuth.objects.filter(
+                role__in=request.user.roles.all(),
+                permission__code=permission_code,
+            ).exists()
+        else:
+            parent = request.GET.get('parent') or request.data.get('parent')
+            if not parent:
+                raise PermissionDenied(detail=ERRMSG.ERROR.ARG,code=403)
+            root = get_object_or_404(ResourceGroup, id=parent).root
+            permission_code = view.permission_mapping.get(KEY.RESOUCE).get(view.action,None)
+            auth = ResourceGroupAuth.objects.filter(
+                permission__code=permission_code,
+                role__in=request.user.roles.all(),
+                resource_group=root
+            ).exists()
+        if not auth:
+            raise PermissionDenied(detail=ERRMSG.ERROR.PERMISSION,code=403)
 
     def has_permission(self, request, view):
         self.auth(request, view)

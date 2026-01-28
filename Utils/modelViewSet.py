@@ -88,7 +88,7 @@ class ModelViewSet(ViewSet):
 
 class CModelViewSet(ModelViewSet):
 
-    def add_after(self,instance):
+    def add_after(self,instance,**kwargs):
         pass
     @action(detail=False, methods=['post'], url_path='add')
     def add(self, request):

@@ -1,11 +1,14 @@
 import ipaddress
+
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-from Utils.Const import ERRMSG, KEY, WRITE_ONLY_FILED
+from Utils.Const import ERRMSG, KEY, WRITE_ONLY_FILED, CONFIG
+from rbac.models import Role
 from resource.models import Resource, Voucher, ResourceGroup
 
 
 class ResourceGroupSerializer(serializers.ModelSerializer):
+    role = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Role.objects.all())
     class Meta:
         model = ResourceGroup
         exclude = ('protected',)
@@ -18,12 +21,27 @@ class ResourceGroupSerializer(serializers.ModelSerializer):
                         message=ERRMSG.UNIQUE.NAME,
                     )
                 ],
-            }
+            },
+            "parent": {
+                "error_messages": {
+                    'does_not_exist': ERRMSG.ABSENT.GROUP,
+                }
+            },
+            "root": {
+                "error_messages": {
+                    'does_not_exist': ERRMSG.ABSENT.GROUP,
+                }
+            },
         }
+    def validate_level(self,value):
+        if value > CONFIG.GROUP_LEVEL_MAX:
+            raise serializers.ValidationError(ERRMSG.CONFIG.GROUP_LEVEL_MAX)
+        return value
 
 class ResourcePermissionSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     group = serializers.IntegerField(required=False)
+
 class VoucherSerializer(serializers.ModelSerializer):
     class Meta:
         model = Voucher
@@ -39,6 +57,7 @@ class VoucherSerializer(serializers.ModelSerializer):
             "password":WRITE_ONLY_FILED,
             "private_key":WRITE_ONLY_FILED,
         }
+
 class ResourceSerializer(serializers.ModelSerializer):
     vouchers = VoucherSerializer(many=True,read_only=True)
     voucher_ids = serializers.PrimaryKeyRelatedField(
