@@ -1,10 +1,10 @@
+from django.db.models import Subquery
 from rest_framework.decorators import action
-from Utils.Const import AUDIT, PERMISSIONS, ERRMSG, METHODS
+from Utils.Const import AUDIT, PERMISSIONS, METHODS, ERRMSG
 from Utils.modelViewSet import create_base_view_set, CURDModelViewSet
-from perm.authentication import ResourcePermission, ResourceEditPermission, BasePermission, TokenPermission, \
+from perm.authentication import ResourcePermission, ResourceEditPermission, TokenPermission, \
     ResourceGroupPermission
 from perm.models import ResourceGroupAuth
-from rbac.models import Permission
 from resource.models import Resource, Voucher, ResourceGroup
 from resource.serialization import ResourceSerializer, VoucherSerializer, ResourceGroupSerializer
 from audit.Logging import OperaLogging
@@ -38,7 +38,16 @@ _ResourceViewSet = create_base_view_set(
     AUDIT.CLASS.RESOURCE
 )
 class ResourceViewSet(_ResourceCustomizeView,_ResourceViewSet):
-    pass
+
+    def extra_data(self,data):
+        groups_id = set()
+        for resource in data:
+            groups_id.add(resource.get('group',None))
+        root_ids = ResourceGroup.objects.filter(id__in=groups_id).values_list('root',flat=True).distinct()
+        groups = ResourceGroup.objects.filter(
+            root__in=Subquery(root_ids),
+        ).distinct()
+        return ResourceGroupSerializer(groups,many=True).data
 
 _VoucherViewSet = create_base_view_set(
     Voucher,
@@ -57,7 +66,7 @@ class ResourceGroupViewSet(CURDModelViewSet):
     model = ResourceGroup
     serializer_class = ResourceGroupSerializer
     log_class = OperaLogging
-    audit_object = AUDIT.CLASS.RESOURCE_GROUP,
+    audit_object = AUDIT.CLASS.RESOURCE_GROUP
     permission_mapping = {
         'SYSTEM':{
             METHODS.CREATE: PERMISSIONS.SYSTEM.RESOURCE_GROUP.CREATE,
@@ -71,32 +80,40 @@ class ResourceGroupViewSet(CURDModelViewSet):
             METHODS.DELETE: PERMISSIONS.RESOURCE.GROUP.DELETE,
         }
     }
-    def add_after(self, instance,serializer):
-        role = serializer.validated_data['role']
-        perms = Permission.objects.filter(scope='resource')
-        admin_auth = [ResourceGroupAuth(role_id=1,permission=perm,resource_group=instance,protected=True) for perm in perms]
-        role_auth = [ResourceGroupAuth(role=role,permission=perm,resource_group=instance) for perm in perms]
-        auth = admin_auth + role_auth
-        ResourceGroupAuth.objects.bulk_create(auth)
 
     def check(self,id_list):
         ret = dict()
         resources = list(Resource.objects.filter(group__in=id_list))
         vouchers = list(Voucher.objects.filter(group__in=id_list))
+        groups = list(ResourceGroup.objects.filter(parent__in=id_list))
         all_group_ids = set()
         for resource in resources:
             all_group_ids.add(resource.group.id)
         for voucher in vouchers:
             all_group_ids.add(voucher.group.id)
+        for group in groups:
+            all_group_ids.add(group.id)
         RESOURCE_KEY = AUDIT.CLASS.RESOURCE
         VOUCHER_KEY = AUDIT.CLASS.VOUCHER
+        GROUP_KEY = AUDIT.CLASS.RESOURCE_GROUP
         for group_id in all_group_ids:
             ret[group_id] = {
                 RESOURCE_KEY: [],
-                VOUCHER_KEY: []
+                VOUCHER_KEY: [],
+                GROUP_KEY: []
             }
         for resource in resources:
             ret[resource.group.id][RESOURCE_KEY].append(resource.id)
         for voucher in vouchers:
             ret[voucher.group.id][VOUCHER_KEY].append(voucher.id)
-        return ret
+        for group in groups:
+            ret[group.id][GROUP_KEY].append(group.id)
+        if ret:
+            prompt = ""
+            for item,relations in ret.items():
+                prompt += self.audit_object + str(item) + ERRMSG.RELATION.PROMPT
+                for obj,ids in relations.items():
+                    prompt += obj + str(ids)
+                prompt += ERRMSG.RELATION.DELETE + '\n'
+            return prompt
+        return None

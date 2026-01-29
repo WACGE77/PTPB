@@ -151,15 +151,15 @@ class ResourceGroupPermission(TokenPermission):
 
     def system_permission(self,permission_code):
         if not BaseAuth.objects.filter(
-                permission__code=permission_code,
-                role__in=self.request.user.roles.all()
+            permission__code=permission_code,
+            role__in=self.request.user.roles.all()
         ).exists():
             raise PermissionDenied(detail=ERRMSG.ERROR.PERMISSION, code=403)
-    def group_permission(self,permission_code,groups):
+    def group_permission(self,permission_code,group):
         if not ResourceGroupAuth.objects.filter(
-                permission__code=permission_code,
-                role__in=self.request.user.roles.all(),
-                resource_group__in=groups
+            permission__code=permission_code,
+            role__in=self.request.user.roles.all(),
+            resource_group=group
         ).exists():
             raise PermissionDenied(detail=ERRMSG.ERROR.PERMISSION, code=403)
     def _has_delete_permission(self):
@@ -174,7 +174,12 @@ class ResourceGroupPermission(TokenPermission):
             self.system_permission(permission_code)
         if len(lafe):
             permission_code = self.view.permission_mapping.get(KEY.RESOURCE).get(METHODS.DELETE)
-            self.group_permission(permission_code,lafe)
+            if not ResourceGroupAuth.objects.filter(
+                    permission__code=permission_code,
+                    role__in=self.request.user.roles.all(),
+                    resource_group__in=lafe
+            ).exists():
+                raise PermissionDenied(detail=ERRMSG.ERROR.PERMISSION, code=403)
         return
 
     def _has_read_permission(self):
@@ -199,7 +204,7 @@ class ResourceGroupPermission(TokenPermission):
             permission_code = self.view.permission_mapping.get(KEY.SYSTEM).get(METHODS.UPDATE)
             self.system_permission(permission_code)
         else:
-            permission_code = self.view.permission_mapping.get(KEY.SRESOURCE).get(METHODS.UPDATE)
+            permission_code = self.view.permission_mapping.get(KEY.RESOURCE).get(METHODS.UPDATE)
             self.group_permission(permission_code,group.root)
 
     def auth(self,request,view):

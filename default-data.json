@@ -626,6 +626,7 @@
       "role": 1,
       "permission": 21,
       "resource_group": 1,
+      "protected": true,
       "create_date": "2025-01-01T00:00:00Z"
     }
   },
@@ -635,6 +636,7 @@
     "fields": {
       "role": 1,
       "permission": 22,
+      "protected": true,
       "resource_group": 1,
       "create_date": "2025-01-01T00:00:00Z"
     }
@@ -645,6 +647,7 @@
     "fields": {
       "role": 1,
       "permission": 23,
+      "protected": true,
       "resource_group": 1,
       "create_date": "2025-01-01T00:00:00Z"
     }
@@ -655,6 +658,7 @@
     "fields": {
       "role": 1,
       "permission": 24,
+      "protected": true,
       "resource_group": 1,
       "create_date": "2025-01-01T00:00:00Z"
     }
@@ -665,6 +669,7 @@
     "fields": {
       "role": 1,
       "permission": 25,
+      "protected": true,
       "resource_group": 1,
       "create_date": "2025-01-01T00:00:00Z"
     }
@@ -675,6 +680,7 @@
     "fields": {
       "role": 1,
       "permission": 26,
+      "protected": true,
       "resource_group": 1,
       "create_date": "2025-01-01T00:00:00Z"
     }
@@ -685,6 +691,7 @@
     "fields": {
       "role": 1,
       "permission": 27,
+      "protected": true,
       "resource_group": 1,
       "create_date": "2025-01-01T00:00:00Z"
     }
@@ -695,6 +702,7 @@
     "fields": {
       "role": 1,
       "permission": 28,
+      "protected": true,
       "resource_group": 1,
       "create_date": "2025-01-01T00:00:00Z"
     }
@@ -705,6 +713,7 @@
     "fields": {
       "role": 1,
       "permission": 29,
+      "protected": true,
       "resource_group": 1,
       "create_date": "2025-01-01T00:00:00Z"
     }
@@ -715,6 +724,7 @@
     "fields": {
       "role": 1,
       "permission": 30,
+      "protected": true,
       "resource_group": 1,
       "create_date": "2025-01-01T00:00:00Z"
     }
@@ -725,6 +735,7 @@
     "fields": {
       "role": 1,
       "permission": 31,
+      "protected": true,
       "resource_group": 1,
       "create_date": "2025-01-01T00:00:00Z"
     }
@@ -744,6 +755,8 @@
     "fields": {
       "name": "Default",
       "protected": true,
+      "level": 0,
+      "root": 1,
       "description": "默认资源部组",
       "create_date": "2025-01-01T00:00:00Z",
       "update_date": "2025-01-01T00:00:00Z"

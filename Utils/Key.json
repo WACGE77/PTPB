@@ -12,5 +12,6 @@
   "ROLE": "role",
   "SCOPE": "scope",
   "RESOURCE": "RESOURCE",
-  "SYSTEM": "SYSTEM"
+  "SYSTEM": "SYSTEM",
+  "EXTRA": "extra"
 }

@@ -3,7 +3,8 @@ import ipaddress
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from Utils.Const import ERRMSG, KEY, WRITE_ONLY_FILED, CONFIG
-from rbac.models import Role
+from perm.models import ResourceGroupAuth
+from rbac.models import Role, Permission
 from resource.models import Resource, Voucher, ResourceGroup
 
 
@@ -11,12 +12,12 @@ class ResourceGroupSerializer(serializers.ModelSerializer):
     role = serializers.PrimaryKeyRelatedField(
         write_only=True,
         queryset=Role.objects.all(),
-        default=serializers.CreateOnlyDefault(None)
+        required=False
     )
     class Meta:
         model = ResourceGroup
         exclude = ('protected',)
-        read_only_fields = ('id','create_date','update_date','level')
+        read_only_fields = ('id','create_date','update_date','level','root')
         extra_kwargs = {
             'name':{
                 'validators': [
@@ -30,15 +31,30 @@ class ResourceGroupSerializer(serializers.ModelSerializer):
                 "error_messages": {
                     'does_not_exist': ERRMSG.ABSENT.GROUP,
                 },
-                'default':serializers.CreateOnlyDefault(None)
-            },
-            "root": {
-                "error_messages": {
-                    'does_not_exist': ERRMSG.ABSENT.GROUP,
-                },
-                'default': serializers.CreateOnlyDefault(None)
             },
         }
+    def create(self, validated_data):
+        role = validated_data.pop('role',None)
+        parent = validated_data.get("parent",None)
+        if not parent and not role:
+            raise serializers.ValidationError(ERRMSG.REQUIRED.ROLE)
+        instance = ResourceGroup.objects.create(**validated_data)
+        print(instance.level)
+        if instance.level == 0:
+            perms = Permission.objects.filter(scope='resource')
+            role_auth = []
+            admin_auth = [ResourceGroupAuth(role_id=1, permission=perm, resource_group=instance, protected=True) for
+                          perm in perms]
+            if role and role.id != 1:
+                role_auth = [ResourceGroupAuth(role=role, permission=perm, resource_group=instance) for perm in perms]
+            auth = admin_auth + role_auth
+            ResourceGroupAuth.objects.bulk_create(auth)
+        return instance
+
+    def update(self, instance, validated_data):
+        validated_data.pop('role',None)
+        validated_data.pop('parent',None)
+        return super().update(instance, validated_data)
 
 
 class ResourcePermissionSerializer(serializers.Serializer):

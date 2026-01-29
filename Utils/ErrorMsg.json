@@ -9,6 +9,7 @@
     "IPV6_ADDRESS": "ipv6地址重复"
   },
   "REQUIRED": {
+    "ROLE": "角色为必填项",
     "ACCOUNT": "账户为必填项",
     "PASSWORD": "密码为必填项",
     "OLD_PASSWORD": "旧密码不能为空",

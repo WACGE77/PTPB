@@ -53,7 +53,7 @@ class SSHConsumer(AsyncWebsocketConsumer):
             resource_group=group,
             role__in = self.user.roles.all()
         ))
-        if len(query) != 2:
+        if query != 2:
             return False,ERRMSG.ERROR.PERMISSION
         return True,None
 

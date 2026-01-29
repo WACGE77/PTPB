@@ -1,4 +1,9 @@
 from django.db import models
+from django.db.models.signals import pre_save, post_save
+from django.dispatch import receiver
+from rest_framework.exceptions import ValidationError
+
+from Utils.Const import ERRMSG, CONFIG
 
 # Create your models here.
 class Resource(models.Model):
@@ -71,3 +76,28 @@ class Protocol(models.Model):
     name = models.CharField(max_length=20, unique=True)
     code = models.CharField(max_length=20, unique=True)
     description = models.TextField(null=True, blank=True)
+
+
+@receiver(pre_save, sender=ResourceGroup)
+def pre_group(sender,instance,**kwargs):
+    if instance.parent and instance.parent.level >= CONFIG.GROUP_LEVEL_MAX:
+        raise ValidationError(ERRMSG.CONFIG.GROUP_LEVEL_MAX)
+
+@receiver(post_save, sender=ResourceGroup)
+def post_group(sender, instance,created, **kwargs):
+    if created:
+        update_data = {}
+        if instance.parent:
+            update_data['root'] = instance.parent.root
+            update_data['level'] = instance.parent.level + 1
+        else:
+            update_data['root'] = instance
+            update_data['level'] = 0
+
+        if update_data:
+            try:
+                post_save.disconnect(post_group,sender=ResourceGroup)
+                ResourceGroup.objects.filter(pk=instance.pk).update(**update_data)
+            finally:
+                post_save.connect(post_group,sender=ResourceGroup)
+

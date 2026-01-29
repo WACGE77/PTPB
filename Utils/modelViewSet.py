@@ -80,29 +80,26 @@ class ModelViewSet(ViewSet):
     def add_or_edit(self,request,serializer,act):
         instance = None
         if serializer.is_valid():
-            instance = serializer.save()
-            self.out_log(request,act,True)
-            return instance,Response({**RESPONSE__200__SUCCESS}, status=status.HTTP_200_OK)
+            try:
+                instance = serializer.save()
+                self.out_log(request, act, True)
+                return instance, Response({**RESPONSE__200__SUCCESS}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return instance,Response({**RESPONSE__400__FAILED,KEY.ERROR:e.detail}, status=status.HTTP_400_BAD_REQUEST)
         self.out_log(request,act, False)
         return instance,Response({**RESPONSE__400__FAILED,KEY.ERROR:serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 class CModelViewSet(ModelViewSet):
 
-    def add_after(self,instance,serializer):
-        pass
     @action(detail=False, methods=['post'], url_path='add')
     def add(self, request):
         serializer = self.serializer_class(data=request.data)
         act = AUDIT.ACTION.ADD + self.audit_object
         instance,res = self.add_or_edit(request, serializer, act)
-        if instance:
-            self.add_after(instance,serializer)
         return res
 
 class UModelViewSet(ModelViewSet):
 
-    def edit_after(self,instance):
-        pass
     def is_protected(self,instance):
         return self.protect_key and hasattr(self.model, self.protect_key) and getattr(instance, self.protect_key)
 
@@ -115,8 +112,6 @@ class UModelViewSet(ModelViewSet):
             return Response({**RESPONSE__400__FAILED, KEY.ERROR: ERRMSG.PROTECTED}, status=status.HTTP_400_BAD_REQUEST)
         serializer = self.serializer_class(instance, data=request.data, partial=True)
         instance,res = self.add_or_edit(request, serializer, act)
-        if instance:
-            self.edit_after(instance)
         return res
 
 class RModelViewSet(ModelViewSet):
@@ -130,6 +125,9 @@ class RModelViewSet(ModelViewSet):
     permission_code = None
     permission_const_box:Box = None
     """
+    def extra_data(self,query_data):
+        """子类应重写"""
+        return None
     def search(self,request):
         return self.model.objects.all()
     @action(detail=False, methods=['get'], url_path='get')
@@ -143,10 +141,13 @@ class RModelViewSet(ModelViewSet):
                     page_size = min(serializer.validated_data[KEY.PAGE_SIZE], 100)
                     paginator = Paginator(query, page_size)
                     query = paginator.page(serializer.validated_data[KEY.PAGE_NUMBER]).object_list
+                query_data = self.serializer_class(query, many=True).data
+                extra = self.extra_data(query_data)
                 data = {
                     **RESPONSE__200__SUCCESS,
                     KEY.TOTAL: total,
-                    KEY.SUCCESS: self.serializer_class(query, many=True).data,
+                    KEY.SUCCESS: query_data,
+                    KEY.EXTRA:extra
                 }
                 return Response(data, status=status.HTTP_200_OK)
             except PageNotAnInteger:
@@ -173,13 +174,7 @@ class DModelViewSet(ModelViewSet):
             id_list = serializer.data['id_list']
             remain = self.check(id_list)
             if remain:
-                prompt = ""
-                for item,relations in remain.items():
-                    prompt += self.audit_object + str(item) + ERRMSG.RELATION.PROMPT
-                    for obj,ids in relations.items():
-                        prompt += obj + str(ids)
-                    prompt += ERRMSG.RELATION.DELETE + '\n'
-                return Response({**RESPONSE__400__FAILED, KEY.ERROR: prompt}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({**RESPONSE__400__FAILED, KEY.ERROR: remain}, status=status.HTTP_400_BAD_REQUEST)
             queryset = self.model.objects.filter(id__in=id_list)
             if self.protect_key and hasattr(self.model, self.protect_key):
                 queryset = queryset.exclude(**{self.protect_key: True})
@@ -188,7 +183,7 @@ class DModelViewSet(ModelViewSet):
                 self.out_log(request, act, True)
                 return Response({**RESPONSE__200__SUCCESS}, status=status.HTTP_200_OK)
         self.out_log(request, act, False)
-        return Response({**RESPONSE__400__FAILED, KEY.ERROR: f"{self.audit_object}受保护"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({**RESPONSE__400__FAILED, KEY.ERROR: f"{self.audit_object}受保护,或对象不存在"}, status=status.HTTP_400_BAD_REQUEST)
 
 class CURDModelViewSet(CModelViewSet,UModelViewSet,RModelViewSet,DModelViewSet):
     pass
