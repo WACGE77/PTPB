@@ -143,29 +143,77 @@ class AuditPermission(TokenPermission):
         return True
 
 class ResourceGroupPermission(TokenPermission):
-    def auth(self,request,view):
-        super().auth(request, view)
-        level = request.GET.get('level') or request.data.get('level')
-        if not level:
-            permission_code = view.permission_mapping.get(KEY.SYSTEM).get(view.action,None)
-            auth = BaseAuth.objects.filter(
-                role__in=request.user.roles.all(),
-                permission__code=permission_code,
-            ).exists()
-        else:
-            parent = request.GET.get('parent') or request.data.get('parent')
-            if not parent:
-                raise PermissionDenied(detail=ERRMSG.ERROR.ARG,code=403)
-            root = get_object_or_404(ResourceGroup, id=parent).root
-            permission_code = view.permission_mapping.get(KEY.RESOUCE).get(view.action,None)
-            auth = ResourceGroupAuth.objects.filter(
-                permission__code=permission_code,
-                role__in=request.user.roles.all(),
-                resource_group=root
-            ).exists()
-        if not auth:
-            raise PermissionDenied(detail=ERRMSG.ERROR.PERMISSION,code=403)
 
+    def __init__(self):
+        super().__init__()
+        self.view = None
+        self.request = None
+
+    def system_permission(self,permission_code):
+        if not BaseAuth.objects.filter(
+                permission__code=permission_code,
+                role__in=self.request.user.roles.all()
+        ).exists():
+            raise PermissionDenied(detail=ERRMSG.ERROR.PERMISSION, code=403)
+    def group_permission(self,permission_code,groups):
+        if not ResourceGroupAuth.objects.filter(
+                permission__code=permission_code,
+                role__in=self.request.user.roles.all(),
+                resource_group__in=groups
+        ).exists():
+            raise PermissionDenied(detail=ERRMSG.ERROR.PERMISSION, code=403)
+    def _has_delete_permission(self):
+        id_list = self.request.data.get('id_list')
+        if not id_list:
+            raise PermissionDenied(detail=ERRMSG.ERROR.ARG,code=400)
+        groups = ResourceGroup.objects.filter(id__in=id_list).all()
+        root = [group for group in groups if group.root.id == group.id]
+        lafe = [group for group in groups if group.root.id != group.id]
+        if len(root):
+            permission_code = self.view.permission_mapping.get(KEY.SYSTEM).get(METHODS.DELETE)
+            self.system_permission(permission_code)
+        if len(lafe):
+            permission_code = self.view.permission_mapping.get(KEY.RESOURCE).get(METHODS.DELETE)
+            self.group_permission(permission_code,lafe)
+        return
+
+    def _has_read_permission(self):
+        permission_code = self.view.permission_mapping.get(KEY.SYSTEM).get(METHODS.READ)
+        self.system_permission(permission_code)
+
+    def _has_create_permission(self):
+        parent_id = self.request.data.get('parent')
+        if parent_id:
+            parent = get_object_or_404(ResourceGroup, id=parent_id)
+            permission_code = self.view.permission_mapping.get(KEY.RESOURCE).get(METHODS.CREATE)
+            self.group_permission(permission_code,parent.root)
+        else:
+            permission_code = self.view.permission_mapping.get(KEY.SYSTEM).get(METHODS.CREATE)
+            self.system_permission(permission_code)
+    def _has_update_permission(self):
+        group_id = self.request.data.get('id')
+        if not group_id:
+            raise PermissionDenied(detail=ERRMSG.ERROR.ARG,code=400)
+        group = get_object_or_404(ResourceGroup, id=group_id)
+        if group.root == group.id:
+            permission_code = self.view.permission_mapping.get(KEY.SYSTEM).get(METHODS.UPDATE)
+            self.system_permission(permission_code)
+        else:
+            permission_code = self.view.permission_mapping.get(KEY.SRESOURCE).get(METHODS.UPDATE)
+            self.group_permission(permission_code,group.root)
+
+    def auth(self,request,view):
+        self.request = request
+        self.view = view
+        super().auth(request, view)
+        if view.action == METHODS.READ:
+            self._has_read_permission()
+        elif view.action == METHODS.DELETE:
+            self._has_delete_permission()
+        elif view.action == METHODS.UPDATE:
+            self._has_update_permission()
+        else:
+            self._has_create_permission()
     def has_permission(self, request, view):
         self.auth(request, view)
         return True

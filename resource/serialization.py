@@ -8,11 +8,15 @@ from resource.models import Resource, Voucher, ResourceGroup
 
 
 class ResourceGroupSerializer(serializers.ModelSerializer):
-    role = serializers.PrimaryKeyRelatedField(write_only=True, queryset=Role.objects.all())
+    role = serializers.PrimaryKeyRelatedField(
+        write_only=True,
+        queryset=Role.objects.all(),
+        default=serializers.CreateOnlyDefault(None)
+    )
     class Meta:
         model = ResourceGroup
         exclude = ('protected',)
-        read_only_fields = ('id','create_date','update_date')
+        read_only_fields = ('id','create_date','update_date','level')
         extra_kwargs = {
             'name':{
                 'validators': [
@@ -25,18 +29,17 @@ class ResourceGroupSerializer(serializers.ModelSerializer):
             "parent": {
                 "error_messages": {
                     'does_not_exist': ERRMSG.ABSENT.GROUP,
-                }
+                },
+                'default':serializers.CreateOnlyDefault(None)
             },
             "root": {
                 "error_messages": {
                     'does_not_exist': ERRMSG.ABSENT.GROUP,
-                }
+                },
+                'default': serializers.CreateOnlyDefault(None)
             },
         }
-    def validate_level(self,value):
-        if value > CONFIG.GROUP_LEVEL_MAX:
-            raise serializers.ValidationError(ERRMSG.CONFIG.GROUP_LEVEL_MAX)
-        return value
+
 
 class ResourcePermissionSerializer(serializers.Serializer):
     id = serializers.IntegerField()

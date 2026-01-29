@@ -88,7 +88,7 @@ class ModelViewSet(ViewSet):
 
 class CModelViewSet(ModelViewSet):
 
-    def add_after(self,instance,**kwargs):
+    def add_after(self,instance,serializer):
         pass
     @action(detail=False, methods=['post'], url_path='add')
     def add(self, request):
@@ -96,7 +96,7 @@ class CModelViewSet(ModelViewSet):
         act = AUDIT.ACTION.ADD + self.audit_object
         instance,res = self.add_or_edit(request, serializer, act)
         if instance:
-            self.add_after(instance)
+            self.add_after(instance,serializer)
         return res
 
 class UModelViewSet(ModelViewSet):
