@@ -37,9 +37,9 @@
       "READ": "resource.voucher.read"
     },
     "GROUP": {
-      "CREATE": "system.group.create",
-      "DELETE": "system.group.delete",
-      "UPDATE": "system.group.update"
+      "CREATE": "resource.group.create",
+      "DELETE": "resource.group.delete",
+      "UPDATE": "resource.group.update"
     }
   },
   "AUDIT": {

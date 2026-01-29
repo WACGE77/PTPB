@@ -155,11 +155,11 @@ class ResourceGroupPermission(TokenPermission):
                 role__in=self.request.user.roles.all()
         ).exists():
             raise PermissionDenied(detail=ERRMSG.ERROR.PERMISSION, code=403)
-    def group_permission(self,permission_code,groups):
+    def group_permission(self,permission_code,group):
         if not ResourceGroupAuth.objects.filter(
                 permission__code=permission_code,
                 role__in=self.request.user.roles.all(),
-                resource_group__in=groups
+                resource_group=group
         ).exists():
             raise PermissionDenied(detail=ERRMSG.ERROR.PERMISSION, code=403)
     def _has_delete_permission(self):

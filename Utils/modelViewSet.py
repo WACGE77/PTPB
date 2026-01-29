@@ -80,29 +80,26 @@ class ModelViewSet(ViewSet):
     def add_or_edit(self,request,serializer,act):
         instance = None
         if serializer.is_valid():
-            instance = serializer.save()
-            self.out_log(request,act,True)
-            return instance,Response({**RESPONSE__200__SUCCESS}, status=status.HTTP_200_OK)
+            try:
+                instance = serializer.save()
+                self.out_log(request, act, True)
+                return instance, Response({**RESPONSE__200__SUCCESS}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return instance,Response({**RESPONSE__400__FAILED,KEY.ERROR:e.detail}, status=status.HTTP_400_BAD_REQUEST)
         self.out_log(request,act, False)
         return instance,Response({**RESPONSE__400__FAILED,KEY.ERROR:serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 class CModelViewSet(ModelViewSet):
 
-    def add_after(self,instance,serializer):
-        pass
     @action(detail=False, methods=['post'], url_path='add')
     def add(self, request):
         serializer = self.serializer_class(data=request.data)
         act = AUDIT.ACTION.ADD + self.audit_object
         instance,res = self.add_or_edit(request, serializer, act)
-        if instance:
-            self.add_after(instance,serializer)
         return res
 
 class UModelViewSet(ModelViewSet):
 
-    def edit_after(self,instance):
-        pass
     def is_protected(self,instance):
         return self.protect_key and hasattr(self.model, self.protect_key) and getattr(instance, self.protect_key)
 
@@ -115,8 +112,6 @@ class UModelViewSet(ModelViewSet):
             return Response({**RESPONSE__400__FAILED, KEY.ERROR: ERRMSG.PROTECTED}, status=status.HTTP_400_BAD_REQUEST)
         serializer = self.serializer_class(instance, data=request.data, partial=True)
         instance,res = self.add_or_edit(request, serializer, act)
-        if instance:
-            self.edit_after(instance)
         return res
 
 class RModelViewSet(ModelViewSet):

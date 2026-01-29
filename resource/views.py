@@ -57,7 +57,7 @@ class ResourceGroupViewSet(CURDModelViewSet):
     model = ResourceGroup
     serializer_class = ResourceGroupSerializer
     log_class = OperaLogging
-    audit_object = AUDIT.CLASS.RESOURCE_GROUP,
+    audit_object = AUDIT.CLASS.RESOURCE_GROUP
     permission_mapping = {
         'SYSTEM':{
             METHODS.CREATE: PERMISSIONS.SYSTEM.RESOURCE_GROUP.CREATE,
@@ -71,13 +71,6 @@ class ResourceGroupViewSet(CURDModelViewSet):
             METHODS.DELETE: PERMISSIONS.RESOURCE.GROUP.DELETE,
         }
     }
-    def add_after(self, instance,serializer):
-        role = serializer.validated_data['role']
-        perms = Permission.objects.filter(scope='resource')
-        admin_auth = [ResourceGroupAuth(role_id=1,permission=perm,resource_group=instance,protected=True) for perm in perms]
-        role_auth = [ResourceGroupAuth(role=role,permission=perm,resource_group=instance) for perm in perms]
-        auth = admin_auth + role_auth
-        ResourceGroupAuth.objects.bulk_create(auth)
 
     def check(self,id_list):
         ret = dict()
