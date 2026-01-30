@@ -39,8 +39,7 @@ class ResourceGroupSerializer(serializers.ModelSerializer):
         if not parent and not role:
             raise serializers.ValidationError(ERRMSG.REQUIRED.ROLE)
         instance = ResourceGroup.objects.create(**validated_data)
-        print(instance.level)
-        if instance.level == 0:
+        if not parent or not instance.parent or instance == instance.parent:
             perms = Permission.objects.filter(scope='resource')
             role_auth = []
             admin_auth = [ResourceGroupAuth(role_id=1, permission=perm, resource_group=instance, protected=True) for
