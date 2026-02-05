@@ -37,7 +37,7 @@ class PageArg(Serializer):
     all = BooleanField(required=False)
     page_number = IntegerField(required=False,min_value=1)
     page_size = IntegerField(required=False,min_value=1)
-
+    desc = BooleanField(required=False)
     def validate(self, attrs):
         if not attrs.get('all'):
             attrs.setdefault('page_number', 1)
@@ -137,6 +137,8 @@ class RModelViewSet(ModelViewSet):
             try:
                 query = self.search(request)
                 total = query.count()
+                if serializer.validated_data.get('desc',None):
+                    query = query.order_by('-id')
                 if not serializer.validated_data.get('all',None):
                     page_size = min(serializer.validated_data[KEY.PAGE_SIZE], 100)
                     paginator = Paginator(query, page_size)
