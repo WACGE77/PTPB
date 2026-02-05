@@ -88,7 +88,7 @@ class ResourceEditPermission(TokenPermission):
         resource = get_object_or_404(view.model, pk=pk)
         group = serializer.validated_data.get('group')
         if group is None or resource.group == group:
-            root = get_object_or_404(ResourceGroup, id=group).root
+            root = resource.group.root
             permission_code = get_code(view)
             if not ResourceGroupAuth.objects.filter(
                     permission__code=permission_code,
