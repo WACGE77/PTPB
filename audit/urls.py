@@ -10,5 +10,5 @@ session_router.register('',SessionLogViewSet,basename='SessionLogViewSet')
 urlpatterns = [
   path('login/',include(login_router.urls)),
   path('opera/',include(opera_router.urls)),
-  path('session/',include(opera_router.urls))
+  path('session/',include(session_router.urls))
 ]
