@@ -111,34 +111,7 @@ class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
         exclude = ['perms']
-        extra_kwargs = {
-            'id':READ_ONLY_FILED,
-            'name':{
-                "validators": [
-                    UniqueValidator(
-                        queryset=Role.objects.all(),
-                        message=ERRMSG.UNIQUE.NAME
-                    )
-                ],
-                "error_messages": {
-                    "required": ERRMSG.REQUIRED.NAME,
-                }
-            },
-            'code': {
-                "validators": [
-                    UniqueValidator(
-                        queryset=Role.objects.all(),
-                        message=ERRMSG.UNIQUE.CODE
-                    )
-                ],
-                "error_messages": {
-                    "required": ERRMSG.REQUIRED.CODE,
-                }
-            },
-            "protected":READ_ONLY_FILED,
-            "create_date":READ_ONLY_FILED,
-            "update_date":READ_ONLY_FILED,
-        }
+
 class RolePermissionSerializer(serializers.ModelSerializer):
     perms = serializers.PrimaryKeyRelatedField(
         queryset=Permission.objects.all(),
@@ -162,3 +135,4 @@ class PermissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Permission
         fields = '__all__'
+

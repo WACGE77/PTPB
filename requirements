@@ -12,3 +12,4 @@ mysqlclient
 asyncssh
 scapy
 python-box
+django-filter

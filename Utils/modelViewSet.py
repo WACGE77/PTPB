@@ -1,6 +1,7 @@
 from typing import Optional,Type
 from django.core.paginator import Paginator, PageNotAnInteger
 from django.db.models import Model
+from django_filters.rest_framework import FilterSet
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.fields import BooleanField
@@ -51,6 +52,7 @@ class ModelViewSet(ViewSet):
     delete_key: str = 'id_list'
     model: Model = None
     serializer_class: Optional[Type[BaseSerializer]]
+    filterset_class :Optional[Type[FilterSet]]
     log_class: Optional[Type[OperaLogging]] | None = None
     audit_object: str = None
     permission_mapping = dict()
@@ -64,6 +66,7 @@ class ModelViewSet(ViewSet):
     delete_key:str 前端发来的id列表的key
     model:Model 视图集所操作的模型
     serializer_class:Optional[Type[BaseSerializer]] 视图集所指定的序列化器,需高度适应
+    query_serializer_class: Optional[Type[BaseSerializer]] 查询字段得序列化器，需要普通的序列化器
     log_class:Optional[Callable[[object],None]] 日志记录操作类
     audit_object:str 操作对象,种类用于日志的生成
     permission_mapping: 细分权限时映射(优先级高)
@@ -125,17 +128,20 @@ class RModelViewSet(ModelViewSet):
     permission_code = None
     permission_const_box:Box = None
     """
+    def search(self,request):
+        return self.model.objects.all()
     def extra_data(self,query_data):
         """子类应重写"""
         return None
-    def search(self,request):
-        return self.model.objects.all()
+
     @action(detail=False, methods=['get'], url_path='get')
     def get(self, request):
         serializer = PageArg(data=request.GET)
         if serializer.is_valid():
+            query = self.search(request)
             try:
-                query = self.search(request)
+                if self.filterset_class:
+                    query = self.filterset_class(request.GET, queryset=query).qs
                 total = query.count()
                 if serializer.validated_data.get('desc',None):
                     query = query.order_by('-id')
@@ -199,6 +205,7 @@ def create_base_view_set(
     log_class: Optional[Type[OperaLogging]] | None,
     audit_object: str = None,
     protect_key:str = None,
+    filterset_class:Type[FilterSet] | None = None,
     permission_code:str = None,
     delete_key: str = 'id_list',
     view_set_class = CURDModelViewSet,
@@ -222,4 +229,5 @@ def create_base_view_set(
         'perm_code': perm_code,
         'protect_key': protect_key,
         'delete_key': delete_key,
+        'filterset_class':filterset_class
     })

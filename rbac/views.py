@@ -1,3 +1,4 @@
+from django.views.decorators.http import condition
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -7,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from audit.Logging import OperaLogging
 from perm.authentication import BasePermission,TokenPermission
+from .filter import UserFilter, RoleFilter
 from .models import User,Role,Permission
 from .serialization import LoginSerializer, ChangePasswordSerializer, \
     UserSerializer, PermissionSerializer, RoleSerializer, RolePermissionSerializer, UserRoleSerializer
@@ -71,8 +73,8 @@ _UserManagerViewSet = create_base_view_set(
     OperaLogging,
     AUDIT.CLASS.USER,
     protect_key='protected',
+    filterset_class=UserFilter,
 )
-
 class UserManagerViewSet(_UserManagerViewSet):
     permission_mapping = {
         **_UserManagerViewSet.permission_mapping,
@@ -111,6 +113,7 @@ _RoleManagerViewSet = create_base_view_set(
     OperaLogging,
     AUDIT.CLASS.ROLE,
     protect_key='protected',
+    filterset_class=RoleFilter,
 )
 class RoleManagerViewSet(_RoleManagerViewSet):
     many_serializer_class = RolePermissionSerializer
@@ -121,6 +124,7 @@ class RoleManagerViewSet(_RoleManagerViewSet):
     }
     relation_serializer_class = RolePermissionSerializer
     relation_audit_object: str = AUDIT.CLASS.PERMISSION
+
     @action(detail=False, methods=['get'], url_path=f'get/permission')
     def get_relations(self, request):
         pk = request.query_params.get('id')

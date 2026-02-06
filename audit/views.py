@@ -23,6 +23,7 @@ class LoginLogViewSet(_AuditViewSet):
         METHODS.READ_SELF : PERMISSIONS.USER.PROFILE.READ
     }
 
+
 class OperationLogViewSet(_AuditViewSet):
     model = OperationLog
     serializer_class = OperationLogSerializer
