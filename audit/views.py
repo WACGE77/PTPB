@@ -1,9 +1,9 @@
 from Utils.Const import METHODS, PERMISSIONS
 from Utils.modelViewSet import RModelViewSet
+from audit.filter import LoginLogFilter, OperationLogFilter
 from audit.models import LoginLog, OperationLog, SessionLog
 from audit.serialization import LoginLogSerializer, OperationLogSerializer, SessionLogSerializer
 from perm.authentication import AuditPermission
-
 # Create your views here
 
 class _AuditViewSet(RModelViewSet):
@@ -18,6 +18,7 @@ class _AuditViewSet(RModelViewSet):
 class LoginLogViewSet(_AuditViewSet):
     model = LoginLog
     serializer_class = LoginLogSerializer
+    filterset_class = LoginLogFilter
     permission_mapping = {
         METHODS.READ_ALL : PERMISSIONS.AUDIT.LOGIN.READ,
         METHODS.READ_SELF : PERMISSIONS.USER.PROFILE.READ
@@ -27,6 +28,7 @@ class LoginLogViewSet(_AuditViewSet):
 class OperationLogViewSet(_AuditViewSet):
     model = OperationLog
     serializer_class = OperationLogSerializer
+    filterset_class = OperationLogFilter
     permission_mapping = {
         METHODS.READ_ALL : PERMISSIONS.AUDIT.OPERATION.READ,
         METHODS.READ_SELF : PERMISSIONS.USER.PROFILE.READ
@@ -35,6 +37,7 @@ class OperationLogViewSet(_AuditViewSet):
 class SessionLogViewSet(_AuditViewSet):
     model = SessionLog
     serializer_class = SessionLogSerializer
+    filterset_class = LoginLogFilter
     permission_mapping = {
         METHODS.READ_ALL: PERMISSIONS.AUDIT.SESSION.READ,
         METHODS.READ_SELF: PERMISSIONS.USER.PROFILE.READ
