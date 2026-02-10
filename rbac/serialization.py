@@ -97,9 +97,10 @@ class UserSerializer(serializers.ModelSerializer):
         if attrs.get('password'):
             attrs['password'] = encrypt_password(attrs['password'])
         return attrs
-    def update(self,**kwargs):
+    def update(self,instance, validated_data):
         self.validated_data.pop('account',None)
-        super().update(**kwargs)
+        updated_instance = super().update(instance, validated_data)
+        return updated_instance
 
 class UserRoleSerializer(serializers.ModelSerializer):
     roles = serializers.PrimaryKeyRelatedField(many=True,write_only=True,queryset=Role.objects.all())
