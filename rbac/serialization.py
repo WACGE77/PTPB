@@ -54,7 +54,6 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'id':READ_ONLY_FILED,
             'account': {
-                **WRITE_ONLY_FILED,
                 'error_messages': {
                     'required': ERRMSG.REQUIRED.ACCOUNT,
                 },
@@ -98,6 +97,9 @@ class UserSerializer(serializers.ModelSerializer):
         if attrs.get('password'):
             attrs['password'] = encrypt_password(attrs['password'])
         return attrs
+    def update(self,**kwargs):
+        self.validated_data.pop('account',None)
+        super().update(**kwargs)
 
 class UserRoleSerializer(serializers.ModelSerializer):
     roles = serializers.PrimaryKeyRelatedField(many=True,write_only=True,queryset=Role.objects.all())
