@@ -108,6 +108,14 @@ class UserRoleSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id','roles']
         read_only_fields = ['id']
+        extra_kwargs = {
+            'roles': {
+                'error_messages':{
+                    'does_not_exist':ERRMSG.ABSENT.ROLE
+                }
+            }
+        }
+
 
 
 class RoleSerializer(serializers.ModelSerializer):

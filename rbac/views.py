@@ -105,7 +105,7 @@ class UserManagerViewSet(_UserManagerViewSet):
         if bind_serializer.is_valid():
             bind_serializer.save()
             return Response({**RESPONSE__200__SUCCESS}, status=status.HTTP_200_OK)
-        return Response({**RESPONSE__400__FAILED}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({**RESPONSE__400__FAILED,KEY.ERROR:bind_serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 _RoleManagerViewSet = create_base_view_set(
     Role,
     RoleSerializer,
