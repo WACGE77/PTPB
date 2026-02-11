@@ -189,7 +189,7 @@ class DModelViewSet(ModelViewSet):
             count, _ = queryset.delete()
             if count > 0:
                 self.out_log(request, act, True)
-                return Response({**RESPONSE__200__SUCCESS}, status=status.HTTP_200_OK)
+                return Response({**RESPONSE__200__SUCCESS,KEY.TOTAL:count}, status=status.HTTP_200_OK)
         self.out_log(request, act, False)
         return Response({**RESPONSE__400__FAILED, KEY.ERROR: f"{self.audit_object}受保护,或对象不存在"}, status=status.HTTP_400_BAD_REQUEST)
 
