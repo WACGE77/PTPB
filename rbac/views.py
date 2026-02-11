@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from audit.Logging import OperaLogging
-from perm.authentication import BasePermission,TokenPermission
+from perm.authentication import BasePermission, TokenPermission, RefreshAuthorization
 from .filter import UserFilter, RoleFilter
 from .models import User,Role,Permission
 from .serialization import LoginSerializer, ChangePasswordSerializer, \
@@ -54,6 +54,7 @@ class LogoutView(APIView):
         return response
 
 class RefreshView(APIView):
+    authentication_classes = [RefreshAuthorization]
     permission_classes = []
     def post(self, request):
         refresh = request.COOKIES.get('refresh', None)

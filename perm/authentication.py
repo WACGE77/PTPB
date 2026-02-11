@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import permissions
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import PermissionDenied
-from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
 from Utils.Const import ERRMSG, METHODS, KEY
 from resource.models import ResourceGroup
@@ -28,6 +28,17 @@ class TokenAuthorization(BaseAuthentication):
             return user, info
         except Exception as e:
             return None
+
+class RefreshAuthorization(BaseAuthentication):
+    def authenticate(self, request):
+        refresh = request.COOKIES.get('refresh')
+        try:
+            refresh = RefreshToken(refresh)
+            user_id = refresh.payload['user_id']
+            get_object_or_404(User, id=user_id)
+        except Exception:
+            pass
+        return None
 
 class TokenPermission(permissions.BasePermission):
     def auth(self,request,view):
