@@ -13,5 +13,6 @@
   "SCOPE": "scope",
   "RESOURCE": "RESOURCE",
   "SYSTEM": "SYSTEM",
-  "EXTRA": "extra"
+  "EXTRA": "extra",
+  "GROUP": "group"
 }

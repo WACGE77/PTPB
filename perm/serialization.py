@@ -13,7 +13,7 @@ class _GroupSerializer(serializers.Serializer):
     )
     def validate_id(self, value):
         if not ResourceGroup.objects.filter(id=value).exists():
-            raise serializers.ValidationError({KEY.ROLE: ERRMSG.ABSENT.GROUP})
+            raise serializers.ValidationError({KEY.GROUP: ERRMSG.ABSENT.GROUP})
         return value
     def validate_permission(self, value):
         if not all(
