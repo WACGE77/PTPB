@@ -63,5 +63,8 @@
   },
   "CONFIG": {
     "GROUP_LEVEL_MAX": "子组层数已到达最大,可在设置中调整"
+  },
+  "NOT_CONTAIN": {
+    "ROLE": "该角色不属于自身所拥有的角色"
   }
 }

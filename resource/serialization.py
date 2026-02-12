@@ -2,7 +2,7 @@ import ipaddress
 
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-from Utils.Const import ERRMSG, KEY, WRITE_ONLY_FILED, CONFIG
+from Utils.Const import ERRMSG, KEY, WRITE_ONLY_FILED
 from perm.models import ResourceGroupAuth
 from rbac.models import Role, Permission
 from resource.models import Resource, Voucher, ResourceGroup
@@ -33,6 +33,15 @@ class ResourceGroupSerializer(serializers.ModelSerializer):
                 },
             },
         }
+    def validate(self, attrs):
+        role = attrs.get('role',None)
+        if role:
+            user = self.context.get('request').user
+            roles = [item.get('id') for item in list(user.roles.values('id'))]
+            if role not in roles and 1 not in roles:
+                raise serializers.ValidationError({KEY.ROLE: ERRMSG.NOT_CONTAIN.ROLE})
+        return attrs
+
     def create(self, validated_data):
         role = validated_data.pop('role',None)
         parent = validated_data.get("parent",None)

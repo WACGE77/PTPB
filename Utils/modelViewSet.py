@@ -96,7 +96,7 @@ class CModelViewSet(ModelViewSet):
 
     @action(detail=False, methods=['post'], url_path='add')
     def add(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context={'request':request})
         act = AUDIT.ACTION.ADD + self.audit_object
         instance,res = self.add_or_edit(request, serializer, act)
         return res
