@@ -17,7 +17,8 @@
     "ID_LIST": "ID列表为必传参数",
     "NAME": "名称不能为空",
     "CODE": "唯一编码不能为空",
-    "PROTOCOL": "协议为必填项"
+    "PROTOCOL": "协议为必填项",
+    "PORT": "端口为必填项"
   },
   "MAX": {
     "PASSWORD": "密码长度不得超过",
@@ -28,7 +29,8 @@
     "ID": "无效ID",
     "ID_LIST": "无效ID列表",
     "IP": "IP地址格式无效",
-    "PROTOCOL": "协议错误"
+    "PROTOCOL": "协议错误",
+    "PORT": "无效端口"
   },
   "ABSENT": {
     "ROLE": "角色不存在",
@@ -59,7 +61,7 @@
     "CONNECT": "连接超时"
   },
   "SAME":{
-    "GROUP": "不同组,禁止使用"
+    "GROUP": "不同系统组,禁止使用"
   },
   "CONFIG": {
     "GROUP_LEVEL_MAX": "子组层数已到达最大,可在设置中调整"
