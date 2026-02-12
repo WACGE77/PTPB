@@ -151,7 +151,15 @@ class ResourceSerializer(serializers.ModelSerializer):
             ipaddress.IPv6Address(value)
             return value
         except ipaddress.AddressValueError:
-            raise serializers.ValidationError({'ipv6_address':ERRMSG.INVALID.IP})\
+            raise serializers.ValidationError({'ipv6_address':ERRMSG.INVALID.IP})
+
+    def validate_group(self,value):
+        if hasattr(self,'instance') and self.instance:
+            group = self.instance.group.id
+            if value != group:
+                if not self.instance.vouchers.exists():
+                    raise serializers.ValidationError({KEY.GROUP:ERRMSG.SWITCH.RESOURCE})
+        return value
 
     def validate(self, attrs):
         ipv4_address = attrs.get('ipv4_address',getattr(self.instance,'ipv4_address',None))
