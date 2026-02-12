@@ -140,7 +140,7 @@ class RModelViewSet(ModelViewSet):
         if serializer.is_valid():
             query = self.search(request)
             try:
-                if self.filterset_class:
+                if hasattr(self,'filterset_class') and self.filterset_class:
                     query = self.filterset_class(request.GET, queryset=query).qs
                 total = query.count()
                 if serializer.validated_data.get('desc',None):
