@@ -1,9 +1,7 @@
 from django.db.models import Subquery
-from rest_framework.decorators import action
 from Utils.Const import AUDIT, PERMISSIONS, METHODS, ERRMSG
 from Utils.modelViewSet import create_base_view_set, CURDModelViewSet
-from perm.authentication import ResourcePermission, ResourceEditPermission, TokenPermission, \
-    ResourceGroupPermission
+from perm.authentication import ResourcePermission,ResourceGroupPermission
 from perm.models import ResourceGroupAuth
 from resource.models import Resource, Voucher, ResourceGroup
 from resource.serialization import ResourceSerializer, VoucherSerializer, ResourceGroupSerializer
@@ -13,11 +11,6 @@ from audit.Logging import OperaLogging
 # # Create your views here.
 class _ResourceCustomizeView:
 
-    @action(detail=False, methods=['post'], url_path='edit', permission_classes=[ResourceEditPermission])
-    def edit(self, request):
-        res = super().edit(request)
-        return res
-
     def search(self, request):
         groups = list(ResourceGroupAuth.objects.filter(
             role__in=request.user.roles.all(),
@@ -25,10 +18,6 @@ class _ResourceCustomizeView:
         ).values_list('resource_group', flat=True))
         return self.model.objects.filter(group__id__in=groups)
 
-    @action(detail=False, methods=['get'], url_path='get', permission_classes=[TokenPermission])
-    def get(self,request):
-        res = super().get(request)
-        return res
 _ResourceViewSet = create_base_view_set(
     Resource,
     ResourceSerializer,
