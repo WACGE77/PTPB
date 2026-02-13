@@ -96,10 +96,10 @@ class ResourceEditPermission(TokenPermission):
         if not serializer.is_valid():
             raise PermissionDenied(detail=ERRMSG.ERROR.ARG,code=403)
         pk = serializer.validated_data.get('id')
-        resource = get_object_or_404(view.model, pk=pk)
+        obj = get_object_or_404(view.model, pk=pk)
         group = serializer.validated_data.get('group')
-        if group is None or resource.group == group:
-            root = resource.group.root
+        if group is None or obj.group == group:
+            root = obj.group.root
             permission_code = get_code(view)
             if not ResourceGroupAuth.objects.filter(
                     permission__code=permission_code,
@@ -108,21 +108,13 @@ class ResourceEditPermission(TokenPermission):
             ).exists():
                 raise PermissionDenied(detail='您无当前权限访问', code=403)
             return
-        if hasattr(resource,'vouchers') and resource.vouchers.exists():
-            raise PermissionDenied(detail=ERRMSG.SWITCH.RELATION, code=403)
-        else:
-            try:
-                if resource.resources.exists():
-                    raise PermissionDenied(detail=ERRMSG.SWITCH.RELATION, code=403)
-            except Exception:
-                pass
 
         delete_perm_code = view.permission_const_box.DELETE
         add_perm_code = view.permission_const_box.CREATE
         if not (ResourceGroupAuth.objects.filter(
             permission__code=delete_perm_code,
             role__in=request.user.roles.all(),
-            resource_group=resource.group
+            resource_group=obj.group
         ).exists() and ResourceGroupAuth.objects.filter(
             permission__code=add_perm_code,
             role__in=request.user.roles.all(),

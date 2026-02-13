@@ -7,7 +7,6 @@ from perm.models import ResourceGroupAuth
 from rbac.models import Role, Permission
 from resource.models import Resource, Voucher, ResourceGroup
 
-
 class ResourceGroupSerializer(serializers.ModelSerializer):
     role = serializers.PrimaryKeyRelatedField(
         write_only=True,
@@ -85,6 +84,14 @@ class VoucherSerializer(serializers.ModelSerializer):
             "private_key":WRITE_ONLY_FILED,
         }
 
+    def validate_group(self, value):
+        if hasattr(self, 'instance') and self.instance:
+            group = self.instance.group.id
+            if value.id != group:
+                if self.instance.resources.exists():
+                    raise serializers.ValidationError(ERRMSG.RELATION.RESOURCE)
+        return value
+
 class ResourceSerializer(serializers.ModelSerializer):
     vouchers = VoucherSerializer(many=True,read_only=True)
     voucher_ids = serializers.PrimaryKeyRelatedField(
@@ -156,9 +163,9 @@ class ResourceSerializer(serializers.ModelSerializer):
     def validate_group(self,value):
         if hasattr(self,'instance') and self.instance:
             group = self.instance.group.id
-            if value != group:
-                if not self.instance.vouchers.exists():
-                    raise serializers.ValidationError({KEY.GROUP:ERRMSG.SWITCH.RESOURCE})
+            if value.id != group:
+                if self.instance.vouchers.exists():
+                    raise serializers.ValidationError(ERRMSG.RELATION.RESOURCE)
         return value
 
     def validate(self, attrs):

@@ -43,8 +43,7 @@
   },
   "SWITCH": {
     "GROUP": "无切换组权限,即添加新组和删除旧组的组合权限",
-    "RELATION": "有关联当前组数据,无法切组",
-    "RESOURCE": "当前资源有关联资源组，无法进行操作"
+    "RELATION": "有关联当前组数据,无法切组"
   },
   "ERROR": {
     "ARG": "错误参数",
@@ -56,7 +55,9 @@
   "PROTECTED": "无法操作系统保留项",
   "RELATION": {
     "PROMPT": "有关联",
-    "DELETE": "无法删除"
+    "DELETE": "无法删除",
+    "RESOURCE": "当前资源有关联资源组，无法进行操作",
+    "VOUCHER": "当前有关联资源，无法进行操作"
   },
   "TIMEOUT": {
     "CONNECT": "连接超时"
