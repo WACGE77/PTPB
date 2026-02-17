@@ -96,7 +96,7 @@ class CModelViewSet(ModelViewSet):
 
     @action(detail=False, methods=['post'], url_path='add')
     def add(self, request):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data,context={'request':request})
         act = AUDIT.ACTION.ADD + self.audit_object
         instance,res = self.add_or_edit(request, serializer, act)
         return res
@@ -140,7 +140,7 @@ class RModelViewSet(ModelViewSet):
         if serializer.is_valid():
             query = self.search(request)
             try:
-                if self.filterset_class:
+                if hasattr(self,'filterset_class') and self.filterset_class:
                     query = self.filterset_class(request.GET, queryset=query).qs
                 total = query.count()
                 if serializer.validated_data.get('desc',None):
@@ -186,12 +186,13 @@ class DModelViewSet(ModelViewSet):
             queryset = self.model.objects.filter(id__in=id_list)
             if self.protect_key and hasattr(self.model, self.protect_key):
                 queryset = queryset.exclude(**{self.protect_key: True})
-            count, _ = queryset.delete()
+            count = queryset.count()
+            queryset.delete()
             if count > 0:
                 self.out_log(request, act, True)
                 return Response({**RESPONSE__200__SUCCESS,KEY.TOTAL:count}, status=status.HTTP_200_OK)
         self.out_log(request, act, False)
-        return Response({**RESPONSE__400__FAILED, KEY.ERROR: f"{self.audit_object}受保护,或对象不存在"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({**RESPONSE__400__FAILED, KEY.ERROR: f"无删除{self.audit_object}条目"}, status=status.HTTP_400_BAD_REQUEST)
 
 class CURDModelViewSet(CModelViewSet,UModelViewSet,RModelViewSet,DModelViewSet):
     pass

@@ -14,5 +14,6 @@
   "RESOURCE": "RESOURCE",
   "SYSTEM": "SYSTEM",
   "EXTRA": "extra",
-  "GROUP": "group"
+  "GROUP": "group",
+  "VOUCHER": "voucher"
 }

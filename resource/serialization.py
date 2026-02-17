@@ -2,11 +2,10 @@ import ipaddress
 
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-from Utils.Const import ERRMSG, KEY, WRITE_ONLY_FILED, CONFIG
+from Utils.Const import ERRMSG, KEY, WRITE_ONLY_FILED
 from perm.models import ResourceGroupAuth
 from rbac.models import Role, Permission
 from resource.models import Resource, Voucher, ResourceGroup
-
 
 class ResourceGroupSerializer(serializers.ModelSerializer):
     role = serializers.PrimaryKeyRelatedField(
@@ -33,6 +32,15 @@ class ResourceGroupSerializer(serializers.ModelSerializer):
                 },
             },
         }
+    def validate(self, attrs):
+        role = attrs.get('role',None)
+        if role:
+            user = self.context.get('request').user
+            roles = [item.get('id') for item in list(user.roles.values('id'))]
+            if role not in roles and 1 not in roles:
+                raise serializers.ValidationError({KEY.ROLE: ERRMSG.NOT_CONTAIN.ROLE})
+        return attrs
+
     def create(self, validated_data):
         role = validated_data.pop('role',None)
         parent = validated_data.get("parent",None)
@@ -75,6 +83,14 @@ class VoucherSerializer(serializers.ModelSerializer):
             "password":WRITE_ONLY_FILED,
             "private_key":WRITE_ONLY_FILED,
         }
+
+    def validate_group(self, value):
+        if hasattr(self, 'instance') and self.instance:
+            group = self.instance.group.id
+            if value.id != group:
+                if self.instance.resources.exists():
+                    raise serializers.ValidationError(ERRMSG.RELATION.RESOURCE)
+        return value
 
 class ResourceSerializer(serializers.ModelSerializer):
     vouchers = VoucherSerializer(many=True,read_only=True)
@@ -119,6 +135,12 @@ class ResourceSerializer(serializers.ModelSerializer):
                     'invalid':ERRMSG.INVALID.PROTOCOL,
                     'required':ERRMSG.REQUIRED.PROTOCOL,
                 }
+            },
+            "port": {
+                "error_messages": {
+                    'invalid': ERRMSG.INVALID.PORT,
+                    'required': ERRMSG.REQUIRED.PORT,
+                }
             }
         }
     def validate_ipv4_address(self,value):
@@ -137,6 +159,15 @@ class ResourceSerializer(serializers.ModelSerializer):
             return value
         except ipaddress.AddressValueError:
             raise serializers.ValidationError({'ipv6_address':ERRMSG.INVALID.IP})
+
+    def validate_group(self,value):
+        if hasattr(self,'instance') and self.instance:
+            group = self.instance.group.id
+            if value.id != group:
+                if self.instance.vouchers.exists():
+                    raise serializers.ValidationError(ERRMSG.RELATION.RESOURCE)
+        return value
+
     def validate(self, attrs):
         ipv4_address = attrs.get('ipv4_address',getattr(self.instance,'ipv4_address',None))
         ipv6_address = attrs.get('ipv6_address',getattr(self.instance,'ipv6_address',None))
@@ -148,4 +179,17 @@ class ResourceSerializer(serializers.ModelSerializer):
             attrs['ipv4_address'] = ipv4_address
         else:
             attrs['ipv6_address'] = ipv6_address
+
+        vouchers = attrs.get('vouchers',None)
+        if not vouchers:
+            return attrs
+        if hasattr(self,'instance') and self.instance:
+            group = self.instance.group
+        else:
+            group = ResourceGroup.objects.get(id = attrs.get('group'))
+        root = group.root
+        voucher_group = [voucher.group.id for voucher in vouchers]
+        groups_query = ResourceGroup.objects.filter(id__in=voucher_group).values_list('root',flat=True)
+        if len(groups_query) != 1 or groups_query[0] != root.id:
+            raise serializers.ValidationError({KEY.VOUCHER: ERRMSG.SAME.GROUP})
         return attrs

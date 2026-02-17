@@ -13,7 +13,7 @@ class Resource(models.Model):
     ipv4_address = models.GenericIPAddressField(protocol='IPv4', unique=True, null=True, blank=True)
     ipv6_address = models.GenericIPAddressField(protocol='IPv6', unique=True, null=True, blank=True)
     domain = models.CharField(max_length=100, unique=True, null=True, blank=True)
-    port = models.IntegerField(default=22)
+    port = models.IntegerField()
     description = models.TextField(null=True, blank=True)
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
