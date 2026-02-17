@@ -15,7 +15,7 @@ class OperationLogFilter(LoginLogFilter):
     operation = django_filters.CharFilter(field_name='operation', lookup_expr='icontains')
     class Meta:
         model = OperationLog
-        fields = ['user', 'ip', 'start_time', 'end_time', 'operator']
+        fields = ['user', 'ip', 'start_time', 'end_time', 'operation']
 class SessionLogFilter(django_filters.rest_framework.FilterSet):
     resource = django_filters.CharFilter(field_name='resource__name', lookup_expr='icontains')
     user = django_filters.CharFilter(field_name='user__name', lookup_expr='icontains')
