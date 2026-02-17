@@ -12,7 +12,7 @@ class LoginLogFilter(django_filters.rest_framework.FilterSet):
         model = LoginLog
         fields = ['user', 'ip', 'start_time']
 class OperationLogFilter(LoginLogFilter):
-    operator = django_filters.CharFilter(field_name='operator__name', lookup_expr='icontains')
+    operation = django_filters.CharFilter(field_name='operation', lookup_expr='icontains')
     class Meta:
         model = OperationLog
         fields = ['user', 'ip', 'start_time', 'end_time', 'operator']
