@@ -761,5 +761,133 @@
       "create_date": "2025-01-01T00:00:00Z",
       "update_date": "2025-01-01T00:00:00Z"
     }
+  },
+  {
+    "model": "rbac.Route",
+    "pk": 1,
+    "fields": {
+      "path": "/overview",
+      "component": "@/views/IndexPage.vue",
+      "title": "概览",
+      "icon": "Monitor",
+      "permission_code": "system.user.read",
+      "parent_id": null,
+      "order": 1,
+      "status": true,
+      "create_date": "2025-01-01T00:00:00Z",
+      "update_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "rbac.Route",
+    "pk": 2,
+    "fields": {
+      "path": "/terminal",
+      "component": "@/views/TerminalView.vue",
+      "title": "Web终端",
+      "icon": "FullScreen",
+      "permission_code": "resource.self.read",
+      "parent_id": null,
+      "order": 2,
+      "status": true,
+      "create_date": "2025-01-01T00:00:00Z",
+      "update_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "rbac.Route",
+    "pk": 3,
+    "fields": {
+      "path": "/resource",
+      "component": "@/views/ResourceManage.vue",
+      "title": "资源管理",
+      "icon": "Folder",
+      "permission_code": "resource.self.read",
+      "parent_id": null,
+      "order": 3,
+      "status": true,
+      "create_date": "2025-01-01T00:00:00Z",
+      "update_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "rbac.Route",
+    "pk": 4,
+    "fields": {
+      "path": "permission_manage",
+      "component": "",
+      "title": "权限管理",
+      "icon": "User",
+      "permission_code": null,
+      "parent_id": null,
+      "order": 4,
+      "status": true,
+      "create_date": "2025-01-01T00:00:00Z",
+      "update_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "rbac.Route",
+    "pk": 5,
+    "fields": {
+      "path": "/user",
+      "component": "@/views/UserManage.vue",
+      "title": "用户管理",
+      "icon": "UserFilled",
+      "permission_code": "system.user.read",
+      "parent_id": 4,
+      "order": 1,
+      "status": true,
+      "create_date": "2025-01-01T00:00:00Z",
+      "update_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "rbac.Route",
+    "pk": 6,
+    "fields": {
+      "path": "/role",
+      "component": "@/views/RoleManage.vue",
+      "title": "角色管理",
+      "icon": "Van",
+      "permission_code": "system.role.read",
+      "parent_id": 4,
+      "order": 2,
+      "status": true,
+      "create_date": "2025-01-01T00:00:00Z",
+      "update_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "rbac.Route",
+    "pk": 7,
+    "fields": {
+      "path": "/permission",
+      "component": "@/views/PermissionManage.vue",
+      "title": "权限分配",
+      "icon": "Key",
+      "permission_code": "system.permission.read",
+      "parent_id": 4,
+      "order": 3,
+      "status": true,
+      "create_date": "2025-01-01T00:00:00Z",
+      "update_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "rbac.Route",
+    "pk": 8,
+    "fields": {
+      "path": "/audit",
+      "component": "@/views/AuditView.vue",
+      "title": "审计日志",
+      "icon": "Document",
+      "permission_code": "audit.session.read",
+      "parent_id": null,
+      "order": 5,
+      "status": true,
+      "create_date": "2025-01-01T00:00:00Z",
+      "update_date": "2025-01-01T00:00:00Z"
+    }
   }
 ]

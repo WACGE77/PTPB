@@ -88,7 +88,11 @@ class ModelViewSet(ViewSet):
                 self.out_log(request, act, True)
                 return instance, Response({**RESPONSE__200__SUCCESS}, status=status.HTTP_200_OK)
             except Exception as e:
-                return instance,Response({**RESPONSE__400__FAILED,KEY.ERROR:e.detail}, status=status.HTTP_400_BAD_REQUEST)
+                # 处理IntegrityError等没有detail属性的异常
+                error_message = str(e)
+                if hasattr(e, 'detail'):
+                    error_message = e.detail
+                return instance,Response({**RESPONSE__400__FAILED,KEY.ERROR:error_message}, status=status.HTTP_400_BAD_REQUEST)
         self.out_log(request,act, False)
         return instance,Response({**RESPONSE__400__FAILED,KEY.ERROR:serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 

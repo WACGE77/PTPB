@@ -11,22 +11,54 @@ class AsyncSSHClient:
         self._on_disconnect = None
         self._recv_callback = None
 
-    async def connect(self, hostname, username, password, port=22, timeout=10, delay=1):
+    async def connect(self, hostname, username, port=22, timeout=10, delay=1,
+                      password=None, private_key=None, private_key_password=None):
+        """
+        建立 SSH 连接，支持密码或私钥认证
+        
+        Args:
+            hostname: 主机地址
+            username: 用户名
+            port: 端口号，默认为 22
+            timeout: 连接超时时间（秒），默认为 10
+            delay: 连接失败后的重试延迟（秒），默认为 1
+            password: 密码认证方式（与 private_key 二选一）
+            private_key: 私钥内容（与 password 二选一）
+            private_key_password: 私钥密码（如果私钥有密码保护）
+        """
         async with self._lock:
             if self._recv_callback is None:
                 raise ValueError("recv_callback is not set. Please call set_recv_callback() first.")
             if self._connected:
                 raise ValueError("SSH connection is already active.")
+            
+            # 验证认证参数
+            if password is None and private_key is None:
+                raise ValueError("必须提供 password 或 private_key 其中之一")
+            if password is not None and private_key is not None:
+                raise ValueError("password 和 private_key 不能同时提供")
 
             try:
+                # 根据认证方式构建连接参数
+                connect_kwargs = {
+                    'hostname': hostname,
+                    'port': port,
+                    'username': username,
+                    'known_hosts': None
+                }
+                
+                if password is not None:
+                    # 密码认证
+                    connect_kwargs['password'] = password
+                else:
+                    # 私钥认证
+                    connect_kwargs['client_keys'] = [asyncssh.import_private_key(
+                        private_key,
+                        passphrase=private_key_password
+                    )]
+                
                 self._conn = await asyncio.wait_for(
-                    asyncssh.connect(
-                        hostname,
-                        port=port,
-                        username=username,
-                        password=password,
-                        known_hosts=None  # 相当于 AutoAddPolicy
-                    ),
+                    asyncssh.connect(**connect_kwargs),
                     timeout=timeout
                 )
                 self._process = await self._conn.create_process(

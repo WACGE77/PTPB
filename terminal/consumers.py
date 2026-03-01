@@ -65,10 +65,21 @@ class SSHConsumer(AsyncWebsocketConsumer):
         password_mode = self.voucher.password or None
         try:
             if password_mode:
-                await self.pty.connect(host, username=self.voucher.username, password=self.voucher.password,
-                                       port=self.resource.port)
+                # 密码认证
+                await self.pty.connect(
+                    host,
+                    username=self.voucher.username,
+                    password=self.voucher.password,
+                    port=self.resource.port
+                )
             else:
-                pass
+                # 私钥认证
+                await self.pty.connect(
+                    host,
+                    username=self.voucher.username,
+                    private_key=self.voucher.private_key,
+                    port=self.resource.port
+                )
         except Exception:
             await self.session_log('filed')
             return False,ERRMSG.TIMEOUT.CONNECT

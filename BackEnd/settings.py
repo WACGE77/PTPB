@@ -28,7 +28,8 @@ DEBUG = True
 ALLOWED_HOSTS = [
     'www.wacgee.icu',
     '106.13.85.137',
-    'localhost'
+    'localhost',
+    '127.0.0.1'
 ]
 
 

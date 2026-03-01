@@ -18,6 +18,9 @@ class TokenAuthorization(BaseAuthentication):
         if token_str is None:
             return None
         try:
+            # 处理Bearer前缀
+            if token_str.startswith('Bearer '):
+                token_str = token_str[7:]
             token = AccessToken(token_str)
             user_id = token.payload['user_id']
             user = User.objects.get(id=user_id)

@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from audit.Logging import OperaLogging
-from perm.authentication import BasePermission, TokenPermission, RefreshAuthorization
+from perm.authentication import BasePermission, TokenPermission, RefreshAuthorization, TokenAuthorization
 from .filter import UserFilter, RoleFilter
 from .models import User,Role,Permission
 from .serialization import LoginSerializer, ChangePasswordSerializer, \
@@ -150,4 +150,76 @@ class PermissionListView(APIView):
     def get(self, request):
         perms = PermissionSerializer(Permission.objects.all(),many=True).data
         return Response({**RESPONSE__200__SUCCESS,KEY.SUCCESS:perms}, status=status.HTTP_200_OK)
+
+class DynamicRoutesView(APIView):
+    authentication_classes = [TokenAuthorization]  # 添加认证类
+    permission_classes = [TokenPermission]  # 恢复权限验证
+    def get(self, request):
+        # 从数据库查询所有启用的路由
+        from .models import Route
+        routes = Route.objects.filter(status=True).order_by('order')
+        
+        # 构建路由树
+        route_dict = {}
+        root_routes = []
+        
+        # 首先创建所有路由的route_data并添加到route_dict中
+        for route in routes:
+            route_data = {
+                "path": route.path,
+                "component": route.component,
+                "meta": {
+                    "title": route.title,
+                    "icon": route.icon,
+                    "permission": route.permission_code
+                },
+                "children": []
+            }
+            route_dict[route.id] = route_data
+        
+        # 然后构建路由树
+        for route in routes:
+            if route.parent_id is None:
+                root_routes.append(route_dict[route.id])
+            else:
+                if route.parent_id in route_dict:
+                    route_dict[route.parent_id]["children"].append(route_dict[route.id])
+        
+        # 获取用户拥有的权限
+        user_permissions = set()
+        from perm.models import BaseAuth, ResourceGroupAuth
+        for role in request.user.roles.all():
+            # 通过BaseAuth表获取权限
+            auths = BaseAuth.objects.filter(role=role)
+            for auth in auths:
+                user_permissions.add(auth.permission.code)
+            # 通过ResourceGroupAuth表获取权限
+            resource_auths = ResourceGroupAuth.objects.filter(role=role)
+            for auth in resource_auths:
+                user_permissions.add(auth.permission.code)
+        
+        # 过滤路由
+        def filter_routes(routes_list):
+            filtered = []
+            for route in routes_list:
+                if "children" in route and route["children"]:
+                    filtered_children = filter_routes(route["children"])
+                    if filtered_children:
+                        route["children"] = filtered_children
+                        filtered.append(route)
+                else:
+                    permission = route.get("meta", {}).get("permission")
+                    if permission:
+                        # 直接检查用户是否有对应的权限码
+                        if permission in user_permissions:
+                            filtered.append(route)
+                    else:
+                        # 没有权限要求的路由直接添加
+                        filtered.append(route)
+            return filtered
+        
+        # 过滤路由
+        filtered_routes = filter_routes(root_routes)
+        
+        return Response({**RESPONSE__200__SUCCESS, KEY.SUCCESS: filtered_routes}, status=status.HTTP_200_OK)
         

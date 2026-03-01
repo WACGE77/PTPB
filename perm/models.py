@@ -16,6 +16,6 @@ class ResourceGroupAuth(models.Model):
     id = models.AutoField(primary_key=True)
     role = models.ForeignKey('rbac.Role', on_delete=models.CASCADE, related_name='resource_group_authorizations')
     permission = models.ForeignKey('rbac.Permission', on_delete=models.CASCADE, related_name='resource_group_authorizations')
-    resource_group = models.ForeignKey('resource.ResourceGroup', on_delete=models.CASCADE, related_name='resource_group_authorizations')
+    resource_group = models.ForeignKey('resource.ResourceGroup', on_delete=models.CASCADE, related_name='resource_group_authorizations', null=True, blank=True)
     protected = models.BooleanField(default=False)
     create_date = models.DateTimeField(auto_now_add=True)

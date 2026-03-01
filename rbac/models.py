@@ -60,3 +60,18 @@ class Permission(models.Model):
     action = models.CharField(max_length=10)
     code = models.CharField(max_length=40, unique=True)
     name = models.CharField(max_length=20)
+
+class Route(models.Model):
+    class Meta:
+        db_table = 'route'
+    id = models.AutoField(primary_key=True)
+    path = models.CharField(max_length=255, unique=True)
+    component = models.CharField(max_length=255)
+    title = models.CharField(max_length=100)
+    icon = models.CharField(max_length=100)
+    permission_code = models.CharField(max_length=100, null=True, blank=True)
+    parent_id = models.IntegerField(null=True, blank=True)
+    order = models.IntegerField(default=0)
+    status = models.BooleanField(default=True)
+    create_date = models.DateTimeField(auto_now_add=True)
+    update_date = models.DateTimeField(auto_now=True)
