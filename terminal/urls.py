@@ -1,6 +1,6 @@
 from django.urls import path
 
-from terminal.consumers import SSHConsumer
+from terminal.consumers import SSHConsumer, RDPConsumer
 
 urlpatterns = [
 
@@ -8,5 +8,6 @@ urlpatterns = [
 
 
 websocket_urlpatterns = [
-    path('ssh/',SSHConsumer.as_asgi(),name='ssh')
+    path('ssh/', SSHConsumer.as_asgi(), name='ssh'),
+    path('rdp/', RDPConsumer.as_asgi(), name='rdp')
 ]

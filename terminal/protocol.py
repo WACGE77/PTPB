@@ -1,23 +1,70 @@
 import asyncio
 import asyncssh
+import aiohttp
+import json
 
-class AsyncSSHClient:
+
+class BaseProtocolClient:
+    """协议客户端基类，定义通用接口"""
+    
     def __init__(self):
-        self._conn = None
-        self._process = None
-        self._recv_task = None
-        self._lock = asyncio.Lock()
         self._connected = False
         self._on_disconnect = None
         self._recv_callback = None
+        self._recv_task = None
 
-    async def connect(self, hostname, username, port=22, timeout=10, delay=1,
+    def set_on_disconnect(self, callback):
+        """设置断开连接的回调函数"""
+        self._on_disconnect = callback
+
+    def set_recv_callback(self, callback):
+        """设置接收数据的回调函数"""
+        self._recv_callback = callback
+
+    async def send(self, data: str):
+        """发送数据"""
+        raise NotImplementedError("子类必须实现send方法")
+
+    @property
+    def get_status(self) -> bool:
+        """获取连接状态"""
+        return self._connected
+
+    async def resize(self, cols: int, rows: int):
+        """调整窗口大小"""
+        raise NotImplementedError("子类必须实现resize方法")
+
+    async def close(self):
+        """关闭连接"""
+        if not self._connected:
+            return
+        self._connected = False
+        if self._on_disconnect:
+            await self._on_disconnect()
+        if self._recv_task and not self._recv_task.done():
+            self._recv_task.cancel()
+            try:
+                await self._recv_task
+            except asyncio.CancelledError:
+                pass
+
+
+class AsyncSSHClient(BaseProtocolClient):
+    """SSH协议客户端"""
+    
+    def __init__(self):
+        super().__init__()
+        self._conn = None
+        self._process = None
+        self._lock = asyncio.Lock()
+
+    async def connect(self, host, username, port=22, timeout=10, delay=1,
                       password=None, private_key=None, private_key_password=None):
         """
         建立 SSH 连接，支持密码或私钥认证
         
         Args:
-            hostname: 主机地址
+            host: 主机地址
             username: 用户名
             port: 端口号，默认为 22
             timeout: 连接超时时间（秒），默认为 10
@@ -41,7 +88,7 @@ class AsyncSSHClient:
             try:
                 # 根据认证方式构建连接参数
                 connect_kwargs = {
-                    'hostname': hostname,
+                    'host': host,
                     'port': port,
                     'username': username,
                     'known_hosts': None
@@ -86,22 +133,10 @@ class AsyncSSHClient:
         finally:
             asyncio.create_task(self.close())
 
-
-    def set_on_disconnect(self,callback):
-        self._on_disconnect = callback
-
-    def set_recv_callback(self, callback):
-        """设置接收数据的回调函数（必须是普通函数或可调用对象）"""
-        self._recv_callback = callback
-
     async def send(self, data: str):
         if not self._connected or self._process.stdin.is_closing():
             raise ConnectionError("SSH connection is not active.")
         self._process.stdin.write(data)
-
-    @property
-    def get_status(self) -> bool:
-        return self._connected
 
     async def resize(self, cols: int, rows: int):
         if not self._process or not self._connected:
@@ -116,17 +151,7 @@ class AsyncSSHClient:
 
     async def close(self):
         async with self._lock:
-            if not self._connected:
-                return
-            self._connected = False
-            if self._on_disconnect:
-                await self._on_disconnect()
-            if self._recv_task and not self._recv_task.done():
-                self._recv_task.cancel()
-                try:
-                    await self._recv_task
-                except asyncio.CancelledError:
-                    pass
+            await super().close()
             if self._process:
                 self._process.stdin.close()
                 self._process.kill()
@@ -140,25 +165,93 @@ class AsyncSSHClient:
             self._recv_callback = None
 
 
+class AsyncRDPClient(BaseProtocolClient):
+    """RDP协议客户端"""
+    
+    def __init__(self):
+        super().__init__()
+        self._session = None
+        self._websocket = None
+        self._guacamole_url = None
 
-def my_recv_backcall(data):
-    print(data,end='',flush=True)
+    async def connect(self, guacamole_url, token, timeout=10):
+        """
+        建立 RDP 连接，通过 Guacamole WebSocket
+        
+        Args:
+            guacamole_url: Guacamole WebSocket URL
+            token: JWT 令牌
+            timeout: 连接超时时间（秒），默认为 10
+        """
+        if self._recv_callback is None:
+            raise ValueError("recv_callback is not set. Please call set_recv_callback() first.")
+        if self._connected:
+            raise ValueError("RDP connection is already active.")
 
+        try:
+            self._session = aiohttp.ClientSession()
+            self._guacamole_url = f"{guacamole_url}?token={token}"
+            
+            # 连接到 Guacamole WebSocket
+            self._websocket = await asyncio.wait_for(
+                self._session.ws_connect(self._guacamole_url),
+                timeout=timeout
+            )
+            self._connected = True
 
-if __name__ == '__main__':
-    def my_recv_callback(data):
-        print("Received:", repr(data))
+            # 启动接收循环
+            self._recv_task = asyncio.create_task(self._recv_loop())
 
-    async def main():
-        client = AsyncSSHClient()
-        client.set_recv_callback(my_recv_callback)
+        except Exception as e:
+            self._connected = False
+            if self._session:
+                await self._session.close()
+            raise e
 
-        await client.connect('example.com', 'user', 'password')
+    async def _recv_loop(self):
+        try:
+            async for msg in self._websocket:
+                if msg.type == aiohttp.WSMsgType.TEXT:
+                    await self._recv_callback(msg.data)
+                elif msg.type == aiohttp.WSMsgType.CLOSED:
+                    break
+                elif msg.type == aiohttp.WSMsgType.ERROR:
+                    break
+        except Exception:
+            pass
+        finally:
+            asyncio.create_task(self.close())
 
-        await client.send('ls -l\n')
-        await asyncio.sleep(2)  # 等待输出
+    async def send(self, data: str):
+        if not self._connected or self._websocket.closed:
+            raise ConnectionError("RDP connection is not active.")
+        await self._websocket.send_str(data)
 
-        await client.close()
+    async def resize(self, cols: int, rows: int):
+        """
+        调整 RDP 会话窗口大小
+        
+        Args:
+            cols: 列数
+            rows: 行数
+        """
+        if not self._connected or self._websocket.closed:
+            return
+        # 发送 Guacamole 格式的大小调整命令
+        resize_command = json.dumps({
+            "type": "size",
+            "width": cols,
+            "height": rows
+        })
+        await self._websocket.send_str(resize_command)
 
-    # 运行
-    asyncio.run(main())
+    async def close(self):
+        await super().close()
+        if self._websocket and not self._websocket.closed:
+            await self._websocket.close()
+        if self._session:
+            await self._session.close()
+        # 清理引用
+        self._session = None
+        self._websocket = None
+        self._guacamole_url = None

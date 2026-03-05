@@ -13,3 +13,5 @@ asyncssh
 scapy
 python-box
 django-filter
+aiohttp
+pyjwt

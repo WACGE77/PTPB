@@ -83,3 +83,4 @@ Thumbs.db
 # Local configuration (secrets, local settings)
 local_settings.py
 *.local.py
+audit/migrations/0001_initial.py

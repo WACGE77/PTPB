@@ -5,7 +5,7 @@ from rest_framework.validators import UniqueValidator
 from Utils.Const import ERRMSG, KEY, WRITE_ONLY_FILED
 from perm.models import ResourceGroupAuth
 from rbac.models import Role, Permission
-from resource.models import Resource, Voucher, ResourceGroup
+from resource.models import Resource, Voucher, ResourceGroup, Protocol
 
 class ResourceGroupSerializer(serializers.ModelSerializer):
     role = serializers.PrimaryKeyRelatedField(
@@ -101,6 +101,17 @@ class ResourceSerializer(serializers.ModelSerializer):
         source='vouchers',
         required=False
     )
+    protocols = serializers.PrimaryKeyRelatedField(
+        many=True,
+        read_only=True
+    )
+    protocol_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Protocol.objects.all(),
+        many=True,
+        write_only=True,
+        source='protocols',
+        required=False
+    )
     class Meta:
         model = Resource
         fields = '__all__'
@@ -130,7 +141,7 @@ class ResourceSerializer(serializers.ModelSerializer):
                     message=ERRMSG.UNIQUE.IPV6_ADDRESS
                 )]
             },
-            "protocol":{
+            "protocols":{
                 "error_messages":{
                     'invalid':ERRMSG.INVALID.PROTOCOL,
                     'required':ERRMSG.REQUIRED.PROTOCOL,

@@ -18,8 +18,8 @@ class Resource(models.Model):
     create_date = models.DateTimeField(auto_now_add=True)
     update_date = models.DateTimeField(auto_now=True)
     vouchers = models.ManyToManyField('resource.Voucher', related_name='resources', blank=True)
-    group = models.ForeignKey('ResourceGroup', on_delete=models.SET_DEFAULT,default=1, related_name='resources')
-    protocol = models.ForeignKey('Protocol', on_delete=models.CASCADE, related_name='resources')
+    group = models.ForeignKey('ResourceGroup', on_delete=models.SET_DEFAULT, default=1, related_name='resources')
+    protocols = models.ManyToManyField('Protocol', related_name='resources', blank=True)
     class Meta:
         db_table = 'resource'
         constraints = [
