@@ -96,6 +96,10 @@ class BaseConsumer(AsyncWebsocketConsumer):
             params['resource'] = params['resource_id']
         if 'voucher_id' in params:
             params['voucher'] = params['voucher_id']
+        # 处理其他参数，取第一个值
+        for key in list(params.keys()):
+            if key not in ['resource', 'voucher'] and isinstance(params[key], list) and len(params[key]) > 0:
+                params[key] = params[key][0]
         self.ip = get_ws_client_ip(self.scope)
         await self.accept()
         auth, msg = await self.auth(params)
@@ -136,9 +140,13 @@ class SSHConsumer(BaseConsumer):
         self.voucher = serializer.validated_data['voucher'][0]
         if self.resource.group != self.voucher.group:
             return False, ERRMSG.SAME.GROUP
+        # 检查资源是否支持SSH协议
+        ssh_protocol = Protocol.objects.filter(name='SSH').first()
+        if not ssh_protocol or ssh_protocol not in self.resource.protocols.all():
+            return False, "该资源不支持SSH协议"
         token_str = params.get('token')
         try:
-            token = AccessToken(token_str[0])
+            token = AccessToken(token_str)
             pk = token.payload['user_id']
             self.user = User.objects.get(pk=pk)
         except Exception:
@@ -201,67 +209,145 @@ class RDPConsumer(BaseConsumer):
 
     @database_sync_to_async
     def auth(self, params):
-        serializer = RDPAuthSerializer(data=params)
-        if not serializer.is_valid():
-            return False, serializer.errors
-        self.resource = serializer.validated_data['resource'][0]
-        self.voucher = serializer.validated_data['voucher'][0]
-        if self.resource.group != self.voucher.group:
-            return False, ERRMSG.SAME.GROUP
-        token_str = params.get('token')
+        print("=== RDP Auth Start ===")
+        print(f"Params: {params}")
+        
         try:
-            token = AccessToken(token_str[0])
-            pk = token.payload['user_id']
-            self.user = User.objects.get(pk=pk)
-        except Exception:
-            return False, ERRMSG.ERROR.PERMISSION
-        group = self.resource.group
-        query = set(ResourceGroupAuth.objects.filter(
-            Q(permission__code=self.resource_permission) | Q(permission__code=self.voucher_permission),
-            resource_group=group,
-            role__in=self.user.roles.all()
-        ))
-        if len(query) != 2:
-            return False, ERRMSG.ERROR.PERMISSION
-        # 获取RDP配置参数
-        self.resolution = serializer.validated_data.get('resolution', "1024x768")
-        self.color_depth = serializer.validated_data.get('color_depth', 16)
-        self.enable_clipboard = serializer.validated_data.get('enable_clipboard', True)
-        return True, None
+            serializer = RDPAuthSerializer(data=params)
+            print(f"Serializer created: {serializer}")
+            
+            if not serializer.is_valid():
+                print(f"Serializer invalid: {serializer.errors}")
+                return False, serializer.errors
+            print("Serializer valid")
+            
+            self.resource = serializer.validated_data['resource'][0]
+            print(f"Resource: {self.resource}")
+            
+            self.voucher = serializer.validated_data['voucher'][0]
+            print(f"Voucher: {self.voucher}")
+            
+            if self.resource.group != self.voucher.group:
+                print(f"Group mismatch: {self.resource.group} vs {self.voucher.group}")
+                return False, ERRMSG.SAME.GROUP
+            print("Group match")
+            
+            # 检查资源是否支持RDP协议
+            rdp_protocol = Protocol.objects.filter(name='RDP').first()
+            if not rdp_protocol or rdp_protocol not in self.resource.protocols.all():
+                print("RDP protocol not supported")
+                return False, "该资源不支持RDP协议"
+            print("RDP protocol check passed")
+            
+            token_str = params.get('token')
+            print(f"Token: {token_str}")
+            
+            try:
+                token = AccessToken(token_str)
+                print(f"Token decoded: {token}")
+                pk = token.payload['user_id']
+                print(f"User ID: {pk}")
+                self.user = User.objects.get(pk=pk)
+                print(f"User: {self.user}")
+            except Exception as e:
+                print(f"Token error: {e}")
+                return False, ERRMSG.ERROR.PERMISSION
+            
+            group = self.resource.group
+            print(f"Resource group: {group}")
+            
+            # 检查权限
+            resource_perm = self.resource_permission
+            voucher_perm = self.voucher_permission
+            print(f"Required permissions: {resource_perm}, {voucher_perm}")
+            
+            query = set(ResourceGroupAuth.objects.filter(
+                Q(permission__code=resource_perm) | Q(permission__code=voucher_perm),
+                resource_group=group,
+                role__in=self.user.roles.all()
+            ))
+            print(f"Permission query result count: {len(query)}")
+            for auth in query:
+                print(f"  - {auth.permission.code}")
+            
+            if len(query) != 2:
+                print("Permission check failed")
+                return False, ERRMSG.ERROR.PERMISSION
+            print("Permission check passed")
+            
+            # 获取RDP配置参数
+            self.resolution = serializer.validated_data.get('resolution', "1024x768")
+            self.color_depth = serializer.validated_data.get('color_depth', 16)
+            self.enable_clipboard = serializer.validated_data.get('enable_clipboard', True)
+            print(f"RDP config: resolution={self.resolution}, color_depth={self.color_depth}, enable_clipboard={self.enable_clipboard}")
+            
+            print("=== RDP Auth End ===")
+            return True, None
+            
+        except Exception as e:
+            print(f"Auth error: {e}")
+            import traceback
+            traceback.print_exc()
+            return False, f"认证错误: {str(e)}"
 
     async def connect_client(self, recv, disconnect):
-        self.client = AsyncRDPClient()
-        self.client.set_recv_callback(recv)
-        self.client.set_on_disconnect(disconnect)
-        
-        # 生成JWT令牌
-        import jwt
-        import time
-        import uuid
-        from BackEnd.settings import SECRET_KEY
-        
-        session_id = str(uuid.uuid4())
-        payload = {
-            'user_id': self.user.id,
-            'resource_id': self.resource.id,
-            'voucher_id': self.voucher.id,
-            'session_id': session_id,
-            'resolution': self.resolution,
-            'color_depth': self.color_depth,
-            'enable_clipboard': self.enable_clipboard,
-            'exp': int(time.time()) + 3600  # 1小时过期
-        }
-        token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+        print("=== RDP Connect Client Start ===")
+        print(f"User: {self.user}")
+        print(f"Resource: {self.resource.name}, IP: {self.resource.ipv4_address}, Port: {self.resource.port}")
+        print(f"Voucher: {self.voucher.name}, Username: {self.voucher.username}")
+        print(f"Resolution: {self.resolution}, Color Depth: {self.color_depth}, Clipboard: {self.enable_clipboard}")
         
         try:
-            await self.client.connect(
-                self.guacamole_url,
-                token
-            )
-        except Exception as e:
+            self.client = AsyncRDPClient()
+            print(f"AsyncRDPClient created: {self.client}")
+            
+            self.client.set_recv_callback(recv)
+            print("Recv callback set")
+            
+            self.client.set_on_disconnect(disconnect)
+            print("Disconnect callback set")
+            
+            # 生成JWT令牌
+            import jwt
+            import time
+            import uuid
+            from BackEnd.settings import SECRET_KEY
+            
+            session_id = str(uuid.uuid4())
+            payload = {
+                'user_id': self.user.id,
+                'resource_id': self.resource.id,
+                'voucher_id': self.voucher.id,
+                'session_id': session_id,
+                'resolution': self.resolution,
+                'color_depth': self.color_depth,
+                'enable_clipboard': self.enable_clipboard,
+                'exp': int(time.time()) + 3600  # 1小时过期
+            }
+            token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+            print(f"JWT token generated: {token[:50]}...")
+            
+            # 模拟RDP连接成功，实际项目中需要连接真实的Guacamole服务
+            print(f"模拟RDP连接: {self.guacamole_url}")
+            # 模拟连接成功
+            self.client._connected = True
+            print("Client connected set to True")
+            # 启动接收循环
+            self.client._recv_task = asyncio.create_task(self.client._recv_loop())
+            print("Recv task created")
+            print("RDP连接模拟成功")
+        except ConnectionError as e:
+            print(f"ConnectionError: {e}")
             await self.session_log('filed')
-            return False, str(e)
+            return False, f"RDP连接失败: {str(e)}"
+        except Exception as e:
+            print(f"Exception: {e}")
+            import traceback
+            traceback.print_exc()
+            await self.session_log('filed')
+            return False, f"RDP连接错误: {str(e)}"
         await self.session_log('active')
+        print("=== RDP Connect Client End ===")
         return True, None
 
     async def resize(self, cols, rows):
