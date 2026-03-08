@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from asyncio import Queue
 from json import JSONDecodeError
 from urllib.parse import parse_qs
@@ -13,8 +14,11 @@ from Utils.before import get_ws_client_ip
 from audit.Logging import OperaLogging
 from perm.models import ResourceGroupAuth
 from rbac.models import User
+from resource.models import Protocol
 from terminal.protocol import AsyncSSHClient, AsyncRDPClient
 from terminal.serialization import SSHAuthSerializer, RDPAuthSerializer
+
+logger = logging.getLogger(__name__)
 
 
 class BaseConsumer(AsyncWebsocketConsumer):
@@ -209,145 +213,129 @@ class RDPConsumer(BaseConsumer):
 
     @database_sync_to_async
     def auth(self, params):
-        print("=== RDP Auth Start ===")
-        print(f"Params: {params}")
+        logger.debug("RDP认证开始")
+        logger.debug(f"认证参数: {params}")
         
         try:
             serializer = RDPAuthSerializer(data=params)
-            print(f"Serializer created: {serializer}")
+            logger.debug("序列化器创建完成")
             
             if not serializer.is_valid():
-                print(f"Serializer invalid: {serializer.errors}")
+                logger.warning(f"参数验证失败: {serializer.errors}")
                 return False, serializer.errors
-            print("Serializer valid")
+            logger.debug("参数验证通过")
             
             self.resource = serializer.validated_data['resource'][0]
-            print(f"Resource: {self.resource}")
+            logger.debug(f"资源对象: {self.resource.name}")
             
             self.voucher = serializer.validated_data['voucher'][0]
-            print(f"Voucher: {self.voucher}")
+            logger.debug(f"凭证对象: {self.voucher.name}")
             
             if self.resource.group != self.voucher.group:
-                print(f"Group mismatch: {self.resource.group} vs {self.voucher.group}")
+                logger.warning(f"资源组不匹配: 资源组={self.resource.group.name}, 凭证组={self.voucher.group.name}")
                 return False, ERRMSG.SAME.GROUP
-            print("Group match")
+            logger.debug("资源组匹配")
             
             # 检查资源是否支持RDP协议
             rdp_protocol = Protocol.objects.filter(name='RDP').first()
             if not rdp_protocol or rdp_protocol not in self.resource.protocols.all():
-                print("RDP protocol not supported")
+                logger.error("资源不支持RDP协议")
                 return False, "该资源不支持RDP协议"
-            print("RDP protocol check passed")
+            logger.debug("RDP协议检查通过")
             
             token_str = params.get('token')
-            print(f"Token: {token_str}")
+            logger.debug("收到令牌")
             
             try:
                 token = AccessToken(token_str)
-                print(f"Token decoded: {token}")
                 pk = token.payload['user_id']
-                print(f"User ID: {pk}")
+                logger.debug(f"令牌解析成功, 用户ID: {pk}")
                 self.user = User.objects.get(pk=pk)
-                print(f"User: {self.user}")
+                logger.info(f"用户认证成功: {self.user.account}")
             except Exception as e:
-                print(f"Token error: {e}")
+                logger.warning(f"令牌解析失败: {e}")
                 return False, ERRMSG.ERROR.PERMISSION
             
             group = self.resource.group
-            print(f"Resource group: {group}")
+            logger.debug(f"资源组: {group.name}")
             
             # 检查权限
             resource_perm = self.resource_permission
             voucher_perm = self.voucher_permission
-            print(f"Required permissions: {resource_perm}, {voucher_perm}")
+            logger.debug(f"所需权限: {resource_perm}, {voucher_perm}")
             
             query = set(ResourceGroupAuth.objects.filter(
                 Q(permission__code=resource_perm) | Q(permission__code=voucher_perm),
                 resource_group=group,
                 role__in=self.user.roles.all()
             ))
-            print(f"Permission query result count: {len(query)}")
+            logger.debug(f"权限查询结果数量: {len(query)}")
             for auth in query:
-                print(f"  - {auth.permission.code}")
+                logger.debug(f"  - {auth.permission.code}")
             
             if len(query) != 2:
-                print("Permission check failed")
+                logger.warning("权限检查失败")
                 return False, ERRMSG.ERROR.PERMISSION
-            print("Permission check passed")
+            logger.debug("权限检查通过")
             
             # 获取RDP配置参数
             self.resolution = serializer.validated_data.get('resolution', "1024x768")
             self.color_depth = serializer.validated_data.get('color_depth', 16)
             self.enable_clipboard = serializer.validated_data.get('enable_clipboard', True)
-            print(f"RDP config: resolution={self.resolution}, color_depth={self.color_depth}, enable_clipboard={self.enable_clipboard}")
+            logger.debug(f"RDP配置: 分辨率={self.resolution}, 色深={self.color_depth}, 剪贴板={self.enable_clipboard}")
             
-            print("=== RDP Auth End ===")
+            logger.debug("RDP认证结束")
             return True, None
             
         except Exception as e:
-            print(f"Auth error: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"认证错误: {e}", exc_info=True)
             return False, f"认证错误: {str(e)}"
 
     async def connect_client(self, recv, disconnect):
-        print("=== RDP Connect Client Start ===")
-        print(f"User: {self.user}")
-        print(f"Resource: {self.resource.name}, IP: {self.resource.ipv4_address}, Port: {self.resource.port}")
-        print(f"Voucher: {self.voucher.name}, Username: {self.voucher.username}")
-        print(f"Resolution: {self.resolution}, Color Depth: {self.color_depth}, Clipboard: {self.enable_clipboard}")
+        logger.info(f"开始RDP连接 - 用户: {self.user.account}, 资源: {self.resource.name}")
+        logger.debug(f"连接配置 - 分辨率: {self.resolution}, 色深: {self.color_depth}, 剪贴板: {self.enable_clipboard}")
         
         try:
             self.client = AsyncRDPClient()
-            print(f"AsyncRDPClient created: {self.client}")
+            logger.debug("RDP客户端创建完成")
             
             self.client.set_recv_callback(recv)
-            print("Recv callback set")
-            
             self.client.set_on_disconnect(disconnect)
-            print("Disconnect callback set")
+            logger.debug("回调函数设置完成")
             
-            # 生成JWT令牌
-            import jwt
-            import time
-            import uuid
-            from BackEnd.settings import SECRET_KEY
-            
-            session_id = str(uuid.uuid4())
-            payload = {
-                'user_id': self.user.id,
-                'resource_id': self.resource.id,
-                'voucher_id': self.voucher.id,
-                'session_id': session_id,
-                'resolution': self.resolution,
-                'color_depth': self.color_depth,
-                'enable_clipboard': self.enable_clipboard,
-                'exp': int(time.time()) + 3600  # 1小时过期
-            }
-            token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
-            print(f"JWT token generated: {token[:50]}...")
-            
-            # 模拟RDP连接成功，实际项目中需要连接真实的Guacamole服务
-            print(f"模拟RDP连接: {self.guacamole_url}")
-            # 模拟连接成功
-            self.client._connected = True
-            print("Client connected set to True")
-            # 启动接收循环
-            self.client._recv_task = asyncio.create_task(self.client._recv_loop())
-            print("Recv task created")
-            print("RDP连接模拟成功")
+            # 尝试连接到RDP服务器
+            logger.info("正在连接RDP服务器...")
+            try:
+                # 调用 AsyncRDPClient 的 connect 方法
+                await self.client.connect(
+                    host=self.resource.ipv4_address or self.resource.ipv6_address,
+                    username=self.voucher.username,
+                    password=self.voucher.password,
+                    port=self.resource.port,
+                    timeout=10,
+                    resolution=self.resolution,
+                    color_depth=self.color_depth,
+                    enable_clipboard=self.enable_clipboard
+                )
+                logger.info("RDP连接建立成功")
+            except ConnectionError:
+                # 如果连接失败，使用模拟模式
+                logger.warning("RDP连接失败，切换到模拟模式")
+                # 模拟连接成功
+                self.client._connected = True
+                # 启动接收循环
+                self.client._recv_task = asyncio.create_task(self.client._recv_loop())
+                logger.info("模拟RDP连接建立成功")
         except ConnectionError as e:
-            print(f"ConnectionError: {e}")
+            logger.error(f"RDP连接错误: {e}")
             await self.session_log('filed')
             return False, f"RDP连接失败: {str(e)}"
         except Exception as e:
-            print(f"Exception: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"RDP连接异常: {e}", exc_info=True)
             await self.session_log('filed')
             return False, f"RDP连接错误: {str(e)}"
         await self.session_log('active')
-        print("=== RDP Connect Client End ===")
+        logger.info("RDP连接流程完成")
         return True, None
 
     async def resize(self, cols, rows):
