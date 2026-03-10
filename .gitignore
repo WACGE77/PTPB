@@ -84,3 +84,8 @@ Thumbs.db
 local_settings.py
 *.local.py
 audit/migrations/0001_initial.py
+audit/migrations/0002_initial.py
+perm/migrations/0001_initial.py
+perm/migrations/0002_initial.py
+rbac/migrations/0001_initial.py
+resource/migrations/0001_initial.py
