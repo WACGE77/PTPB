@@ -26,7 +26,8 @@ urlpatterns = [
     path('api/', include('terminal.urls')),
     path('api/perm/', include('perm.urls')),
     path('api/resource/',include('resource.urls')),
-    path('api/audit/',include('audit.urls'))
+    path('api/audit/',include('audit.urls')),
+    path('api/ssh_filter/',include('ssh_blacklist.urls'))
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 websocket_urlpatterns = [

@@ -9,7 +9,6 @@ from Utils.Const import ERRMSG, CONFIG
 class Resource(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=20, unique=True)
-    status = models.BooleanField(default=True)
     ipv4_address = models.GenericIPAddressField(protocol='IPv4', unique=True, null=True, blank=True)
     ipv6_address = models.GenericIPAddressField(protocol='IPv6', unique=True, null=True, blank=True)
     domain = models.CharField(max_length=100, unique=True, null=True, blank=True)
@@ -19,7 +18,7 @@ class Resource(models.Model):
     update_date = models.DateTimeField(auto_now=True)
     vouchers = models.ManyToManyField('resource.Voucher', related_name='resources', blank=True)
     group = models.ForeignKey('ResourceGroup', on_delete=models.SET_DEFAULT, default=1, related_name='resources')
-    protocols = models.ManyToManyField('Protocol', related_name='resources', blank=True)
+    protocol = models.ForeignKey('Protocol', on_delete=models.SET_DEFAULT, default=1, related_name='resources', null=True, blank=True)
     class Meta:
         db_table = 'resource'
         constraints = [
@@ -76,6 +75,9 @@ class Protocol(models.Model):
     name = models.CharField(max_length=20, unique=True)
     code = models.CharField(max_length=20, unique=True)
     description = models.TextField(null=True, blank=True)
+
+
+
 
 
 @receiver(pre_save, sender=ResourceGroup)

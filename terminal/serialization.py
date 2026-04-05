@@ -33,7 +33,7 @@ class RDPAuthSerializer(BaseAuthSerializer):
     """RDP认证序列化器"""
     
     resolution = serializers.CharField(default='1024x768')
-    color_depth = serializers.CharField(default='16')
+    color_depth = serializers.CharField(default='32')
     enable_clipboard = serializers.CharField(default='true')
     
     def validate_color_depth(self, value):
@@ -45,8 +45,9 @@ class RDPAuthSerializer(BaseAuthSerializer):
     
     def validate_enable_clipboard(self, value):
         """验证剪贴板设置"""
-        if value.lower() in ('true', '1', 'yes', 'y'):
+        value = str(value).strip().rstrip('?').lower()
+        if value in ('true', '1', 'yes', 'y'):
             return True
-        elif value.lower() in ('false', '0', 'no', 'n'):
+        elif value in ('false', '0', 'no', 'n'):
             return False
         raise serializers.ValidationError('必须是有效的布尔值。')

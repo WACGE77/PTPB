@@ -52,7 +52,8 @@ INSTALLED_APPS = [
     'perm',
     'audit',
     'terminal',
-    'resource'
+    'resource',
+    'ssh_blacklist'
 ]
 
 MIDDLEWARE = [
@@ -88,6 +89,8 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://localhost:8080',
     'https://www.wacgee.icu',
+    'http://localhost:5173',
+    'http://192.168.5.24:5173',
 ]
 # 使用正则表达式匹配允许访问的 域名/IP
 CORS_ALLOWED_ORIGIN_REGEXES = [
@@ -125,27 +128,25 @@ ROOT_URLCONF = 'BackEnd.urls'
 #     },
 # ]
 
-# CACHES = {
-#     "default": {
-#         "BACKEND": "django_redis.cache.RedisCache",
-#         "LOCATION": "redis://127.0.0.1:6379/1",
-#         "OPTIONS": {
-#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-#             #"PASSWORD": "your_password",  # 如果有密码
-#             "SOCKET_CONNECT_TIMEOUT": 5,  # 连接超时
-#             "SOCKET_TIMEOUT": 5,          # 读写超时
-#             "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
-#             "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
-#             "CONNECTION_POOL_KWARGS": {
-#                 "max_connections": 100,
-#                 "retry_on_timeout": True,
-#             }
-#         },
-#         "KEY_PREFIX": "myproject",  # 缓存键前缀
-#     }
-# }
-
-
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/0",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "PASSWORD": "123456",  # Redis密码
+            "SOCKET_CONNECT_TIMEOUT": 5,  # 连接超时
+            "SOCKET_TIMEOUT": 5,          # 读写超时
+            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+            "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+            "CONNECTION_POOL_KWARGS": {
+                "max_connections": 100,
+                "retry_on_timeout": True,
+            }
+        },
+        "KEY_PREFIX": "ptp",  # 缓存键前缀
+    }
+}
 
 WSGI_APPLICATION = 'BackEnd.wsgi.application'
 ASGI_APPLICATION = 'BackEnd.asgi.application'
@@ -154,22 +155,22 @@ ASGI_APPLICATION = 'BackEnd.asgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-        #'NAME': 'E:/sqlite/db.sqlite3',
-    },
     # 'default': {
-    #     'ENGINE': 'django.db.backends.mysql',
-    #     'NAME': 'ptp',      # 数据库名
-    #     'USER': 'root',           # 用户名
-    #     'PASSWORD': '936949426',       # 密码
-    #     'HOST': '127.0.0.1',               # 主机
-    #     'PORT': '3306',                    # 端口
-    #     'OPTIONS': {
-    #         'charset': 'utf8mb4',
-    #     },
-    # }
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': BASE_DIR / 'db.sqlite3',
+    #     #'NAME': 'E:/sqlite/db.sqlite3',
+    # },
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'ptp',      # 数据库名
+        'USER': 'root',           # 用户名
+        'PASSWORD': '936949426',       # 密码
+        'HOST': '127.0.0.1',               # 主机
+        'PORT': '3306',                    # 端口
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
+    }
 }
 
 
@@ -234,14 +235,16 @@ EMAIL_HOST_USER = '1964282264@qq.com'  # 发件邮箱
 EMAIL_HOST_PASSWORD = 'fxbxrnuxhilbdjdc'  # 邮箱授权码，不是密码
 DEFAULT_FROM_EMAIL = '1964282264@qq.com'  # 默认发件人
 
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": ["127.0.0.1", 6379],  # Redis 地址
-#         },
-#     },
-# }
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": ["redis://:123456@127.0.0.1:6379/0"],  # Redis 地址 with password
+        },
+    },
+}
+
+
 
 # 日志配置
 LOGGING = {

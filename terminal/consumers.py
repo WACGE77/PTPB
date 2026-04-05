@@ -17,6 +17,8 @@ from rbac.models import User
 from resource.models import Protocol
 from terminal.protocol import AsyncSSHClient, AsyncRDPClient
 from terminal.serialization import SSHAuthSerializer, RDPAuthSerializer
+from ssh_blacklist.filters import CommandFilter
+from audit.models import ShellOperationLog
 
 logger = logging.getLogger(__name__)
 
@@ -90,17 +92,14 @@ class BaseConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         """处理WebSocket连接"""
         params = parse_qs(self.scope['query_string'].decode('utf-8'))
-        # 确保resource和voucher参数是数组
         if 'resource' in params and not isinstance(params['resource'], list):
             params['resource'] = [params['resource']]
         if 'voucher' in params and not isinstance(params['voucher'], list):
             params['voucher'] = [params['voucher']]
-        # 处理resource_id和voucher_id参数（向后兼容）
         if 'resource_id' in params:
             params['resource'] = params['resource_id']
         if 'voucher_id' in params:
             params['voucher'] = params['voucher_id']
-        # 处理其他参数，取第一个值
         for key in list(params.keys()):
             if key not in ['resource', 'voucher'] and isinstance(params[key], list) and len(params[key]) > 0:
                 params[key] = params[key][0]
@@ -125,15 +124,50 @@ class BaseConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data=None, bytes_data=None):
         """处理接收到的数据"""
+        if hasattr(self, 'client') and hasattr(self.client, 'send_raw'):
+            if self.client and text_data:
+                await self.client.send_raw(text_data)
+            return
+            
         try:
             data = json.loads(text_data)
-            await self.data_queue.put(data)
+            type_ = data.get('type')
+            if type_ == 2:
+                await self.process_command_data(data.get('data'))
+            else:
+                await self.data_queue.put(data)
         except JSONDecodeError:
             pass
 
 
 class SSHConsumer(BaseConsumer):
     """SSH消费者"""
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.command_buffer = []
+        self.command_history = []
+        self.history_index = -1
+    
+    def _update_command_buffer(self, data):
+        """更新命令缓冲区"""
+        for char in data:
+            if char == '\x08' or char == '\x7f':
+                if self.command_buffer:
+                    self.command_buffer.pop()
+            elif char not in ('\r', '\n'):
+                self.command_buffer.append(char)
+    
+    def _split_enter_data(self, data):
+        """分割数据为回车前部分和回车部分"""
+        before_enter = []
+        enter_part = []
+        for char in data:
+            if char in ('\r', '\n'):
+                enter_part.append(char)
+            else:
+                before_enter.append(char)
+        return ''.join(before_enter), ''.join(enter_part)
     
     @database_sync_to_async
     def auth(self, params):
@@ -144,9 +178,8 @@ class SSHConsumer(BaseConsumer):
         self.voucher = serializer.validated_data['voucher'][0]
         if self.resource.group != self.voucher.group:
             return False, ERRMSG.SAME.GROUP
-        # 检查资源是否支持SSH协议
         ssh_protocol = Protocol.objects.filter(name='SSH').first()
-        if not ssh_protocol or ssh_protocol not in self.resource.protocols.all():
+        if not ssh_protocol or self.resource.protocol != ssh_protocol:
             return False, "该资源不支持SSH协议"
         token_str = params.get('token')
         try:
@@ -173,7 +206,6 @@ class SSHConsumer(BaseConsumer):
         password_mode = self.voucher.password or None
         try:
             if password_mode:
-                # 密码认证
                 await self.client.connect(
                     host=host,
                     username=self.voucher.username,
@@ -181,7 +213,6 @@ class SSHConsumer(BaseConsumer):
                     password=self.voucher.password
                 )
             else:
-                # 私钥认证
                 await self.client.connect(
                     host=host,
                     username=self.voucher.username,
@@ -197,8 +228,144 @@ class SSHConsumer(BaseConsumer):
     async def resize(self, cols, rows):
         await self.client.resize(cols, rows)
 
+    async def process_command_data(self, data):
+        try:
+            logger.info(f"收到数据: {repr(data)}")
+            
+            # 检查是否是上键或下键
+            is_up_key = data == '\x1b[A'
+            is_down_key = data == '\x1b[B'
+            has_enter = '\r' in data or '\n' in data
+            
+            if is_up_key:
+                await self._handle_up_key()
+                return
+            
+            if is_down_key:
+                await self._handle_down_key()
+                return
+            
+            if not has_enter:
+                await self.client.send(data)
+                self._update_command_buffer(data)
+                self.history_index = -1
+                return
+            
+            before_enter, enter_part = self._split_enter_data(data)
+            
+            if before_enter:
+                await self.client.send(before_enter)
+                self._update_command_buffer(before_enter)
+            
+            command_str = ''.join(self.command_buffer).strip()
+            logger.info(f"准备检查命令: {repr(command_str)}")
+            
+            self.command_buffer = []
+            self.history_index = -1
+            
+            if not command_str:
+                await self.client.send(enter_part)
+                return
+            
+            await self._check_blacklist(command_str, enter_part)
+            
+        except Exception as e:
+            logger.error(f"process_command_data错误: {e}", exc_info=True)
+    
+    async def _handle_up_key(self):
+        """处理上键 - 调出历史命令"""
+        if not self.command_history:
+            return
+        
+        if self.history_index == -1:
+            self.history_index = len(self.command_history) - 1
+        elif self.history_index > 0:
+            self.history_index -= 1
+        else:
+            return
+        
+        await self._show_history_command()
+    
+    async def _handle_down_key(self):
+        """处理下键 - 调出下一条历史命令"""
+        if not self.command_history or self.history_index == -1:
+            return
+        
+        if self.history_index < len(self.command_history) - 1:
+            self.history_index += 1
+        else:
+            # 已经到最新，清空
+            self.history_index = -1
+            await self._clear_current_line()
+            self.command_buffer = []
+            return
+        
+        await self._show_history_command()
+    
+    async def _show_history_command(self):
+        """显示历史命令"""
+        history_cmd = self.command_history[self.history_index]
+        logger.info(f"调出历史命令: {repr(history_cmd)}")
+        
+        # 清除当前行
+        await self._clear_current_line()
+        
+        # 设置缓冲区
+        self.command_buffer = list(history_cmd)
+        
+        # 回显历史命令
+        await self.send(history_cmd)
+    
+    async def _clear_current_line(self):
+        """清除当前行"""
+        current_len = len(self.command_buffer)
+        if current_len > 0:
+            await self.send('\x08' * current_len)
+            await self.send('\x1b[K')
+    
+    async def _check_blacklist(self, command_str, enter_part):
+        """检查命令黑名单并处理"""
+        try:
+            if not self.resource or not self.resource.group:
+                logger.info("资源或组为空，直接发送回车")
+                await self.client.send(enter_part)
+                return
+            
+            command_filter = CommandFilter(self.resource.group.id)
+            allowed, reason = await command_filter.check_command(command_str)
+            
+            await self.log_shell_operation(command_str, not allowed, reason if not allowed else "")
+            
+            if not allowed:
+                logger.info(f"命令被拦截: {command_str}")
+                await self.client.send('\x03')
+                await asyncio.sleep(0.05)
+                await self.send(f"\r\n[SSH Blacklist] 命令已被拦截: {command_str}\n{reason}\r\n")
+                await self.client.send(enter_part)
+            else:
+                logger.info(f"命令放行: {command_str}")
+                await self.client.send(enter_part)
+                if command_str:
+                    self.command_history.append(command_str)
+                    self.history_index = -1
+        except Exception as e:
+            logger.error(f"命令检查错误: {e}", exc_info=True)
+            await self.client.send(enter_part)
+    
+    @database_sync_to_async
+    def log_shell_operation(self, command, blocked, message):
+        if self.log:
+            ShellOperationLog.objects.create(
+                operation_type='command',
+                content=command,
+                blocked=blocked,
+                block_message=message if blocked else None,
+                user=self.user,
+                session=self.log
+            )
+    
     async def send_data(self, data):
-        await self.client.send(data)
+        pass
 
 
 class RDPConsumer(BaseConsumer):
@@ -236,9 +403,8 @@ class RDPConsumer(BaseConsumer):
                 return False, ERRMSG.SAME.GROUP
             logger.debug("资源组匹配")
             
-            # 检查资源是否支持RDP协议
             rdp_protocol = Protocol.objects.filter(name='RDP').first()
-            if not rdp_protocol or rdp_protocol not in self.resource.protocols.all():
+            if not rdp_protocol or self.resource.protocol != rdp_protocol:
                 logger.error("资源不支持RDP协议")
                 return False, "该资源不支持RDP协议"
             logger.debug("RDP协议检查通过")
@@ -259,7 +425,6 @@ class RDPConsumer(BaseConsumer):
             group = self.resource.group
             logger.debug(f"资源组: {group.name}")
             
-            # 检查权限
             resource_perm = self.resource_permission
             voucher_perm = self.voucher_permission
             logger.debug(f"所需权限: {resource_perm}, {voucher_perm}")
@@ -278,7 +443,6 @@ class RDPConsumer(BaseConsumer):
                 return False, ERRMSG.ERROR.PERMISSION
             logger.debug("权限检查通过")
             
-            # 获取RDP配置参数
             self.resolution = serializer.validated_data.get('resolution', "1024x768")
             self.color_depth = serializer.validated_data.get('color_depth', 16)
             self.enable_clipboard = serializer.validated_data.get('enable_clipboard', True)
@@ -293,7 +457,7 @@ class RDPConsumer(BaseConsumer):
 
     async def connect_client(self, recv, disconnect):
         logger.info(f"开始RDP连接 - 用户: {self.user.account}, 资源: {self.resource.name}")
-        logger.debug(f"连接配置 - 分辨率: {self.resolution}, 色深: {self.color_depth}, 剪贴板: {self.enable_clipboard}")
+        logger.debug(f"连接配置 - 分辨率: {self.resolution}, 色深={self.color_depth}, 剪贴板={self.enable_clipboard}")
         
         try:
             self.client = AsyncRDPClient()
@@ -303,10 +467,8 @@ class RDPConsumer(BaseConsumer):
             self.client.set_on_disconnect(disconnect)
             logger.debug("回调函数设置完成")
             
-            # 尝试连接到RDP服务器
             logger.info("正在连接RDP服务器...")
             try:
-                # 调用 AsyncRDPClient 的 connect 方法
                 await self.client.connect(
                     host=self.resource.ipv4_address or self.resource.ipv6_address,
                     username=self.voucher.username,
@@ -319,11 +481,8 @@ class RDPConsumer(BaseConsumer):
                 )
                 logger.info("RDP连接建立成功")
             except ConnectionError:
-                # 如果连接失败，使用模拟模式
                 logger.warning("RDP连接失败，切换到模拟模式")
-                # 模拟连接成功
                 self.client._connected = True
-                # 启动接收循环
                 self.client._recv_task = asyncio.create_task(self.client._recv_loop())
                 logger.info("模拟RDP连接建立成功")
         except ConnectionError as e:

@@ -3,7 +3,6 @@ from rest_framework import permissions
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
-from setuptools.extension import have_pyrex
 
 from Utils.Const import ERRMSG, METHODS, KEY
 from resource.models import ResourceGroup

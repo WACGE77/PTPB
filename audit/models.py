@@ -28,7 +28,9 @@ class SessionLog(models.Model):
 class ShellOperationLog(models.Model):
     id = models.AutoField(primary_key=True)
     operation_type = models.CharField(max_length=20)
-    content = models.CharField(max_length=100)
+    content = models.CharField(max_length=1000)  # 增加长度，支持长命令
+    blocked = models.BooleanField(default=False)  # 是否被拦截
+    block_message = models.CharField(max_length=200, blank=True, null=True)  # 拦截提示信息
     operation_time = models.DateTimeField(auto_now_add=True)  # in seconds
     user = models.ForeignKey('rbac.User', on_delete=models.CASCADE)
     session = models.ForeignKey(SessionLog, on_delete=models.CASCADE, related_name='operation_logs')

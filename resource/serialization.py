@@ -6,6 +6,8 @@ from Utils.Const import ERRMSG, KEY, WRITE_ONLY_FILED
 from perm.models import ResourceGroupAuth
 from rbac.models import Role, Permission
 from resource.models import Resource, Voucher, ResourceGroup, Protocol
+from terminal.guacamole import guacamole_service
+import asyncio
 
 class ResourceGroupSerializer(serializers.ModelSerializer):
     role = serializers.PrimaryKeyRelatedField(
@@ -92,6 +94,43 @@ class VoucherSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError(ERRMSG.RELATION.RESOURCE)
         return value
 
+    def update(self, instance, validated_data):
+        # 更新凭证信息
+        instance = super().update(instance, validated_data)
+        
+        # 同步更新Guacamole数据库中的连接信息
+        try:
+            from asgiref.sync import sync_to_async
+            
+            # 查找使用此凭证的所有资源
+            resources = instance.resources.all()
+            
+            async def update_all_connections():
+                for resource in resources:
+                    # 构建连接名称
+                    connection_name = f"{instance.username}_{resource.name}_{resource.ipv4_address or resource.ipv6_address}:{resource.port}"
+                    try:
+                        # 获取或创建连接
+                        token, data_source, connection_id = await guacamole_service.get_or_create_connection(
+                            name=connection_name,
+                            hostname=resource.ipv4_address or resource.ipv6_address,
+                            port=resource.port,
+                            username=instance.username,
+                            password=instance.password or "",
+                            color_depth=32
+                        )
+                        if connection_id:
+                            print(f"成功更新Guacamole连接: {connection_name}")
+                    except Exception as e:
+                        print(f"更新Guacamole连接失败: {e}")
+            
+            # 执行异步操作
+            sync_to_async(lambda: asyncio.run(update_all_connections()))()
+        except Exception as e:
+            print(f"同步Guacamole连接失败: {e}")
+        
+        return instance
+
 class ResourceSerializer(serializers.ModelSerializer):
     vouchers = VoucherSerializer(many=True,read_only=True)
     voucher_ids = serializers.PrimaryKeyRelatedField(
@@ -101,17 +140,14 @@ class ResourceSerializer(serializers.ModelSerializer):
         source='vouchers',
         required=False
     )
-    protocols = serializers.PrimaryKeyRelatedField(
-        many=True,
-        read_only=True
-    )
-    protocol_ids = serializers.PrimaryKeyRelatedField(
+    protocol = serializers.SerializerMethodField(read_only=True)
+    protocol_id = serializers.PrimaryKeyRelatedField(
         queryset=Protocol.objects.all(),
-        many=True,
         write_only=True,
-        source='protocols',
+        source='protocol',
         required=False
     )
+    
     class Meta:
         model = Resource
         fields = '__all__'
@@ -141,12 +177,6 @@ class ResourceSerializer(serializers.ModelSerializer):
                     message=ERRMSG.UNIQUE.IPV6_ADDRESS
                 )]
             },
-            "protocols":{
-                "error_messages":{
-                    'invalid':ERRMSG.INVALID.PROTOCOL,
-                    'required':ERRMSG.REQUIRED.PROTOCOL,
-                }
-            },
             "port": {
                 "error_messages": {
                     'invalid': ERRMSG.INVALID.PORT,
@@ -154,6 +184,11 @@ class ResourceSerializer(serializers.ModelSerializer):
                 }
             }
         }
+    
+    def get_protocol(self, obj):
+        if obj.protocol:
+            return {'id': obj.protocol.id, 'name': obj.protocol.name, 'code': obj.protocol.code}
+        return None
     def validate_ipv4_address(self,value):
         if not value:
             return value
@@ -204,3 +239,48 @@ class ResourceSerializer(serializers.ModelSerializer):
         if len(groups_query) != 1 or groups_query[0] != root.id:
             raise serializers.ValidationError({KEY.VOUCHER: ERRMSG.SAME.GROUP})
         return attrs
+
+    def update(self, instance, validated_data):
+        # 保存旧的连接信息用于删除或更新
+        old_ip = instance.ipv4_address or instance.ipv6_address
+        old_port = instance.port
+        old_vouchers = set(instance.vouchers.all())
+        
+        # 更新资源信息
+        instance = super().update(instance, validated_data)
+        
+        # 同步更新Guacamole数据库中的连接信息
+        try:
+            from asgiref.sync import sync_to_async
+            
+            # 获取新的凭证列表
+            new_vouchers = set(instance.vouchers.all())
+            
+            async def update_all_connections():
+                # 处理凭证变更
+                for voucher in new_vouchers:
+                    # 构建新的连接名称
+                    connection_name = f"{voucher.username}_{instance.name}_{instance.ipv4_address or instance.ipv6_address}:{instance.port}"
+                    try:
+                        # 获取或创建连接
+                        token, data_source, connection_id = await guacamole_service.get_or_create_connection(
+                            name=connection_name,
+                            hostname=instance.ipv4_address or instance.ipv6_address,
+                            port=instance.port,
+                            username=voucher.username,
+                            password=voucher.password or "",
+                            color_depth=32
+                        )
+                        if connection_id:
+                            print(f"成功更新Guacamole连接: {connection_name}")
+                    except Exception as e:
+                        print(f"更新Guacamole连接失败: {e}")
+            
+            # 执行异步操作
+            sync_to_async(lambda: asyncio.run(update_all_connections()))()
+        except Exception as e:
+            print(f"同步Guacamole连接失败: {e}")
+        
+        return instance
+
+

@@ -10,6 +10,8 @@ voucher_manager_router.register('',VoucherViewSet,basename='vouchermanager')
 resource_group_manager_router = DefaultRouter()
 resource_group_manager_router.register('', ResourceGroupViewSet, basename='resource_group')
 
+
+
 urlpatterns = [
     path('resource/', include(resource_manager_router.urls), name='resource'),
     path('voucher/',include(voucher_manager_router.urls),name='voucher'),

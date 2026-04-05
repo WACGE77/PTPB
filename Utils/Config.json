@@ -3,5 +3,13 @@
   "RDP": {
     "HOST": "106.13.85.137",
     "PORT": 8888
+  },
+  "GUACAMOLE": {
+    "BASE_URL": "http://127.0.0.1:8080/guacamole",
+    "API_URL": "http://127.0.0.1:8080/guacamole/api",
+    "WEBSOCKET_URL": "ws://127.0.0.1:8080/guacamole/websocket-tunnel",
+    "USERNAME": "guacadmin",
+    "PASSWORD": "wen9369494260.0",
+    "DATA_SOURCE": "mysql"
   }
 }

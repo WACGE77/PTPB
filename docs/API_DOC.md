@@ -1127,19 +1127,22 @@ Authorization: <access_token>
 | 字段 | 是否必须 | 数据类型 | 备注 |
 |------|---------|---------|------|
 | name | 是 | 字符串 | 资源名称 |
-| ipv4_address | 是 | 字符串 | IPv4地址 |
+| ipv4_address | 否* | 字符串 | IPv4地址（与ipv6_address二选一） |
+| ipv6_address | 否* | 字符串 | IPv6地址（与ipv4_address二选一） |
 | group | 是 | 整数 | 资源组ID |
-| protocol_ids | 否 | 数组 | 协议ID列表 |
+| protocol_id | 否 | 整数 | 协议ID（1=SSH, 2=RDP），默认为1 |
 | port | 否 | 整数 | 端口 |
 | description | 否 | 字符串 | 描述 |
 
 #### 请求示例
 ```json
 {
-    "name": "ptp",
-    "ipv4_address": "106.13.85.137",
+    "name": "windows-server",
+    "ipv4_address": "192.168.1.100",
     "group": 1,
-    "protocol_ids": [1, 2]
+    "protocol_id": 2,
+    "port": 3389,
+    "description": "Windows服务器"
 }
 ```
 
@@ -1148,13 +1151,29 @@ Authorization: <access_token>
 |------|------|
 | code | 状态码 |
 | msg | 消息 |
+| data | 创建的资源信息 |
 
 #### 返回示例
 - **成功时返回**
 ```json
 {
     "code": 200,
-    "msg": "OK"
+    "msg": "OK",
+    "data": {
+        "id": 1,
+        "name": "windows-server",
+        "status": true,
+        "ipv4_address": "192.168.1.100",
+        "port": 3389,
+        "protocol": {
+            "id": 2,
+            "name": "RDP",
+            "code": "RDP"
+        },
+        "group": 1,
+        "create_date": "2026-03-15T22:00:00+08:00",
+        "update_date": "2026-03-15T22:00:00+08:00"
+    }
 }
 ```
 
@@ -1164,7 +1183,7 @@ Authorization: <access_token>
     "code": 400,
     "msg": "参数错误",
     "detail": {
-        "voucher": ["不同系统组,禁止使用"]
+        "name": ["名称已被占用"]
     }
 }
 ```
@@ -1183,12 +1202,14 @@ Authorization: <access_token>
 | name | 否 | 字符串 | 资源名称 |
 | ipv4_address | 否 | 字符串 | IPv4地址 |
 | port | 否 | 整数 | 端口 |
+| protocol_id | 否 | 整数 | 协议ID（1=SSH, 2=RDP） |
 
 #### 请求示例
 ```json
 {
-    "id": 3,
-    "description": "改了啊,不是摸鱼了"
+    "id": 1,
+    "protocol_id": 2,
+    "description": "修改为RDP协议"
 }
 ```
 
@@ -1303,17 +1324,21 @@ Authorization: <access_token>
                     "group": 1
                 }
             ],
-            "name": "ptp",
+            "name": "windows-server",
             "status": true,
-            "ipv4_address": "106.13.85.137",
+            "ipv4_address": "192.168.1.100",
             "ipv6_address": null,
             "domain": null,
-            "port": 22,
-            "description": null,
-            "create_date": "2026-02-05T13:55:38.477859+08:00",
-            "update_date": "2026-02-05T14:03:48.490958+08:00",
+            "port": 3389,
+            "description": "Windows服务器",
+            "create_date": "2026-03-15T22:00:00+08:00",
+            "update_date": "2026-03-15T22:00:00+08:00",
             "group": 1,
-            "protocols": [1, 2]
+            "protocol": {
+                "id": 2,
+                "name": "RDP",
+                "code": "RDP"
+            }
         }
     ],
     "extra": [
@@ -1738,8 +1763,19 @@ Authorization: <access_token>
 
 #### 连接参数 (Query String)
 ```
-ws://设备/api/terminal/ssh/?token=<access_token>&resource_id=1&voucher_id=1
+ws://设备/api/terminal/ssh/?token=<access_token>&resource=1&voucher=1
 ```
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| token | 是 | 字符串 | JWT访问令牌 |
+| resource | 是 | 整数 | 资源ID |
+| voucher | 是 | 整数 | 凭证ID |
+
+#### 注意
+- 资源的 `protocol_id` 必须为 1 (SSH) 才能使用 SSH 连接
+- 如果资源协议不是 SSH，将返回错误：`该资源不支持SSH协议`
 
 #### 消息格式 (客户端 → 服务器)
 ```json
@@ -1772,18 +1808,22 @@ ws://设备/api/terminal/ssh/?token=<access_token>&resource_id=1&voucher_id=1
 
 #### 连接参数 (Query String)
 ```
-ws://设备/api/terminal/rdp/?token=<access_token>&resource_id=1&voucher_id=1&resolution=1024x768&color_depth=16&enable_clipboard=true
+ws://设备/api/terminal/rdp/?token=<access_token>&resource=1&voucher=1&resolution=1920x1080&color_depth=24
 ```
 
 #### 参数说明
 | 字段 | 是否必须 | 数据类型 | 备注 |
 |------|---------|---------|------|
 | token | 是 | 字符串 | JWT访问令牌 |
-| resource_id | 是 | 整数 | 资源ID |
-| voucher_id | 是 | 整数 | 凭证ID |
+| resource | 是 | 整数 | 资源ID |
+| voucher | 是 | 整数 | 凭证ID |
 | resolution | 否 | 字符串 | 分辨率，默认1024x768 |
-| color_depth | 否 | 整数 | 颜色深度，默认16 |
+| color_depth | 否 | 整数 | 颜色深度(16/24/32)，默认16 |
 | enable_clipboard | 否 | 布尔值 | 是否启用剪贴板，默认true |
+
+#### 注意
+- 资源的 `protocol_id` 必须为 2 (RDP) 才能使用 RDP 连接
+- 如果资源协议不是 RDP，将返回错误：`该资源不支持RDP协议`
 
 #### 消息格式 (客户端 → 服务器)
 ```json
@@ -1880,6 +1920,233 @@ Authorization: <access_token>
     "detail": "未登录或Token过期"
 }
 ```
+
+## 十一、SSH黑名单管理 (ssh_filter)
+
+### 38. 获取SSH黑名单规则列表
+- **请求方法**: GET
+- **URL**: `https://设备/api/ssh_filter/filter/get/`
+- **请求头**: `Authorization: <access_token>`
+
+#### 查询参数
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| group_id | int | 资源组ID |
+
+#### 请求示例
+```
+GET https://设备/api/ssh_filter/filter/get/?group_id=1
+Authorization: <access_token>
+```
+
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| success | 规则列表 |
+| total | 总数 |
+
+#### 返回示例
+- **成功时返回**
+```json
+{
+    "code": 200,
+    "msg": "OK",
+    "success": [
+        {
+            "id": 1,
+            "group_id": 1,
+            "pattern": "rm -rf",
+            "type": "exact",
+            "priority": 10,
+            "description": "禁止执行危险的 rm 命令",
+            "create_date": "2026-03-31T10:00:00+08:00",
+            "update_date": "2026-03-31T10:00:00+08:00"
+        }
+    ],
+    "total": 1
+}
+```
+
+- **异常时返回**
+```json
+{
+    "code": 400,
+    "msg": "参数错误",
+    "detail": "group_id is required"
+}
+```
+
+### 39. 添加SSH黑名单规则
+- **请求方法**: POST
+- **URL**: `https://设备/api/ssh_filter/filter/add/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| group_id | 是 | 整数 | 资源组ID |
+| pattern | 是 | 字符串 | 匹配模式 |
+| type | 是 | 字符串 | 匹配类型（exact/prefix/regex） |
+| priority | 是 | 整数 | 优先级 |
+| description | 否 | 字符串 | 规则描述 |
+
+#### 请求示例
+```json
+{
+    "group_id": 1,
+    "pattern": "rm -rf",
+    "type": "exact",
+    "priority": 10,
+    "description": "禁止执行危险的 rm 命令"
+}
+```
+
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| success | 创建的规则信息 |
+
+#### 返回示例
+- **成功时返回**
+```json
+{
+    "code": 200,
+    "msg": "OK",
+    "success": {
+        "id": 1,
+        "group_id": 1,
+        "pattern": "rm -rf",
+        "type": "exact",
+        "priority": 10,
+        "description": "禁止执行危险的 rm 命令",
+        "create_date": "2026-03-31T10:00:00+08:00",
+        "update_date": "2026-03-31T10:00:00+08:00"
+    }
+}
+```
+
+- **异常时返回**
+```json
+{
+    "code": 400,
+    "msg": "参数错误",
+    "detail": "Group not found"
+}
+```
+
+### 40. 更新SSH黑名单规则
+- **请求方法**: POST
+- **URL**: `https://设备/api/ssh_filter/filter/edit/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id | 是 | 整数 | 规则ID |
+| group_id | 是 | 整数 | 资源组ID |
+| pattern | 是 | 字符串 | 匹配模式 |
+| type | 是 | 字符串 | 匹配类型（exact/prefix/regex） |
+| priority | 是 | 整数 | 优先级 |
+| description | 否 | 字符串 | 规则描述 |
+
+#### 请求示例
+```json
+{
+    "id": 1,
+    "group_id": 1,
+    "pattern": "rm -rf",
+    "type": "exact",
+    "priority": 15,
+    "description": "禁止执行危险的 rm 命令（高优先级）"
+}
+```
+
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| success | 更新后的规则信息 |
+
+#### 返回示例
+- **成功时返回**
+```json
+{
+    "code": 200,
+    "msg": "OK",
+    "success": {
+        "id": 1,
+        "group_id": 1,
+        "pattern": "rm -rf",
+        "type": "exact",
+        "priority": 15,
+        "description": "禁止执行危险的 rm 命令（高优先级）",
+        "create_date": "2026-03-31T10:00:00+08:00",
+        "update_date": "2026-03-31T11:00:00+08:00"
+    }
+}
+```
+
+- **异常时返回**
+```json
+{
+    "code": 400,
+    "msg": "参数错误",
+    "detail": "Group not found"
+}
+```
+
+### 41. 删除SSH黑名单规则
+- **请求方法**: POST
+- **URL**: `https://设备/api/ssh_filter/filter/del/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id_list | 是 | 数组 | 规则ID列表 |
+
+#### 请求示例
+```json
+{
+    "id_list": [1]
+}
+```
+
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| total | 删除的数量 |
+
+#### 返回示例
+- **成功时返回**
+```json
+{
+    "code": 200,
+    "msg": "OK",
+    "total": 1
+}
+```
+
+- **异常时返回**
+```json
+{
+    "code": 400,
+    "msg": "参数错误",
+    "detail": "无删除SSH黑名单规则条目"
+}
+```
+
+
 
 ## 错误码说明
 

@@ -106,3 +106,6 @@ class ResourceGroupViewSet(CURDModelViewSet):
                 prompt += ERRMSG.RELATION.DELETE + '\n'
             return prompt
         return None
+
+
+# SSH黑名单规则视图集
