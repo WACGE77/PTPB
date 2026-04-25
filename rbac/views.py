@@ -80,7 +80,8 @@ class UserManagerViewSet(_UserManagerViewSet):
     permission_mapping = {
         **_UserManagerViewSet.permission_mapping,
         "reset_password":PERMISSIONS.USER.PROFILE.UPDATE,
-        "detail_":PERMISSIONS.USER.PROFILE.READ,
+        # detail_方法不需要特定权限，任何登录用户都可以访问自己的信息
+        "detail_":None,
         "bind":PERMISSIONS.SYSTEM.PERMISSIONS.UPDATE,
     }
     @action(detail=False, methods=['post'],url_path='reset_password')

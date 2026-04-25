@@ -1,10 +1,24 @@
 import asyncio
 import asyncssh
+import aiomysql
 import logging
 import json
 import uuid
 import websockets
+import time
+import math
+from datetime import datetime, date
+from decimal import Decimal
 from typing import Optional, Tuple
+
+
+def _json_serialize(obj):
+    """JSON序列化处理器 - 处理datetime/Decimal等非标准类型"""
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 from Utils.Const import CONFIG
 from terminal.guacamole import guacamole_service
 
@@ -596,3 +610,398 @@ class AsyncRDPClient(BaseProtocolClient):
             self._data_source = None
             
             logger.info("RDP 连接已关闭")
+
+
+class AsyncMySQLClient(BaseProtocolClient):
+    """
+    MySQL协议异步客户端（基于aiomysql）
+    
+    功能：
+    - 异步连接池管理
+    - 数据库/表结构浏览
+    - SQL查询执行（SELECT）
+    - 数据操作（INSERT/UPDATE/DELETE）
+    - 分页数据获取
+    """
+    
+    def __init__(self):
+        super().__init__()
+        self._pool = None
+        self._host = None
+        self._port = 3306
+        self._username = None
+        self._password = None
+        self._database = None
+    
+    async def connect(
+        self,
+        host: str,
+        username: str,
+        password: str,
+        port: int = 3306,
+        database: str = None,
+        charset: str = 'utf8mb4',
+        timeout: int = 10,
+        **kwargs
+    ):
+        """
+        建立MySQL连接池
+        
+        Args:
+            host: 主机地址
+            username: 用户名
+            password: 密码
+            port: 端口号，默认3306
+            database: 默认数据库，可选
+            charset: 字符集，默认utf8mb4
+            timeout: 连接超时时间（秒）
+        """
+        if self._recv_callback is None:
+            raise ValueError("recv_callback is not set. Please call set_recv_callback() first.")
+        if self._connected:
+            raise ValueError("MySQL connection is already active.")
+        
+        try:
+            self._host = host
+            self._port = port
+            self._username = username
+            self._password = password
+            self._database = database
+            
+            logger.info(f"正在连接MySQL: {username}@{host}:{port}")
+            
+            self._pool = await asyncio.wait_for(
+                aiomysql.create_pool(
+                    host=host,
+                    port=port,
+                    user=username,
+                    password=password,
+                    db=database,
+                    charset=charset,
+                    autocommit=False,
+                    maxsize=5,
+                    minsize=1,
+                    pool_recycle=3600,
+                ),
+                timeout=timeout
+            )
+            
+            self._connected = True
+            logger.info(f"✅ MySQL连接池创建成功")
+            
+        except Exception as e:
+            logger.error(f"❌ MySQL连接失败: {e}", exc_info=True)
+            self._connected = False
+            raise ConnectionError(f"MySQL连接失败: {e}")
+    
+    async def get_databases(self) -> list:
+        """获取所有数据库列表"""
+        if not self._connected or not self._pool:
+            raise ConnectionError("MySQL连接未建立")
+        
+        try:
+            async with self._pool.acquire() as conn:
+                async with conn.cursor(aiomysql.DictCursor) as cur:
+                    await cur.execute("SHOW DATABASES")
+                    rows = await cur.fetchall()
+                    return [row['Database'] for row in rows 
+                            if row['Database'] not in ('information_schema', 'performance_schema', 'sys')]
+        except Exception as e:
+            logger.error(f"获取数据库列表失败: {e}")
+            raise
+    
+    async def get_tables(self, database: str) -> list:
+        """获取指定数据库的所有表"""
+        if not self._connected or not self._pool:
+            raise ConnectionError("MySQL连接未建立")
+        
+        try:
+            async with self._pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    await cur.execute(f"USE `{database}`")
+                    await cur.execute("SHOW TABLES")
+                    rows = await cur.fetchall()
+                    return [row[0] for row in rows]
+        except Exception as e:
+            logger.error(f"获取表列表失败({database}): {e}")
+            raise
+    
+    async def get_table_columns(self, database: str, table: str) -> list:
+        """获取表的列信息"""
+        if not self._connected or not self._pool:
+            raise ConnectionError("MySQL连接未建立")
+        
+        try:
+            async with self._pool.acquire() as conn:
+                async with conn.cursor(aiomysql.DictCursor) as cur:
+                    await cur.execute(f"""
+                        SELECT 
+                            COLUMN_NAME AS name,
+                            COLUMN_TYPE AS type,
+                            IS_NULLABLE AS nullable,
+                            COLUMN_KEY AS key_type,
+                            COLUMN_DEFAULT AS default_value,
+                            EXTRA AS extra,
+                            COMMENT AS comment
+                        FROM INFORMATION_SCHEMA.COLUMNS
+                        WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s
+                        ORDER BY ORDINAL_POSITION
+                    """, (database, table))
+                    return await cur.fetchall()
+        except Exception as e:
+            logger.error(f"获取列信息失败({database}.{table}): {e}")
+            raise
+    
+    async def execute_query(self, sql: str, params: tuple = None) -> dict:
+        """
+        执行SELECT查询
+        
+        Returns:
+            {
+                'columns': list,
+                'rows': list,
+                'total': int,
+                'execution_time': float
+            }
+        """
+        if not self._connected or not self._pool:
+            raise ConnectionError("MySQL连接未建立")
+        
+        start_time = time.time()
+        
+        try:
+            async with self._pool.acquire() as conn:
+                async with conn.cursor(aiomysql.DictCursor) as cur:
+                    if params:
+                        await cur.execute(sql, params)
+                    else:
+                        await cur.execute(sql)
+                    
+                    rows = await cur.fetchall()
+                    columns = [desc[0] for desc in cur.description] if cur.description else []
+                    
+                    execution_time = round((time.time() - start_time) * 1000, 2)
+                    
+                    result = {
+                        'columns': columns,
+                        'rows': rows[:200],
+                        'total': len(rows),
+                        'execution_time': execution_time,
+                        'truncated': len(rows) > 200
+                    }
+                    
+                    logger.info(f"SQL查询完成: {len(rows)}行, 耗时{execution_time}ms")
+                    return result
+                    
+        except Exception as e:
+            execution_time = round((time.time() - start_time) * 1000, 2)
+            logger.error(f"SQL查询执行错误: {sql[:100]}... 错误: {e}")
+            raise
+    
+    async def get_table_data(self, database: str, table: str, page: int = 1, 
+                               page_size: int = 50, where: str = None) -> dict:
+        """
+        获取表数据（分页）
+        
+        Args:
+            database: 数据库名
+            table: 表名
+            page: 页码，从1开始
+            page_size: 每页条数
+            where: WHERE条件（可选）
+            
+        Returns:
+            {
+                'table': str,
+                'database': str,
+                'columns': list,
+                'rows': list,
+                'pagination': {
+                    'page': int,
+                    'page_size': int,
+                    'total': int,
+                    'total_pages': int
+                }
+            }
+        """
+        if not self._connected or not self._pool:
+            raise ConnectionError("MySQL连接未建立")
+        
+        offset = (page - 1) * page_size
+        
+        try:
+            async with self._pool.acquire() as conn:
+                async with conn.cursor(aiomysql.DictCursor) as cur:
+                    where_clause = f" WHERE {where}" if where else ""
+                    
+                    count_sql = f"SELECT COUNT(*) AS total FROM `{database}`.`{table}`{where_clause}"
+                    await cur.execute(count_sql)
+                    total = (await cur.fetchone())['total']
+                    
+                    data_sql = f"SELECT * FROM `{database}`.`{table}`{where_clause} LIMIT {page_size} OFFSET {offset}"
+                    await cur.execute(data_sql)
+                    rows = await cur.fetchall()
+                    columns = [desc[0] for desc in cur.description] if cur.description else []
+                    
+                    # 获取列类型信息
+                    column_types = {}
+                    try:
+                        await cur.execute("""
+                            SELECT COLUMN_NAME, COLUMN_TYPE, DATA_TYPE, IS_NULLABLE, COLUMN_KEY
+                            FROM INFORMATION_SCHEMA.COLUMNS
+                            WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s
+                            ORDER BY ORDINAL_POSITION
+                        """, (database, table))
+                        for col_info in await cur.fetchall():
+                            column_types[col_info['COLUMN_NAME']] = {
+                                'type': col_info['COLUMN_TYPE'],
+                                'data_type': col_info['DATA_TYPE'].upper(),
+                                'nullable': col_info['IS_NULLABLE'] == 'YES',
+                                'is_key': col_info['COLUMN_KEY'] in ('PRI', 'UNI')
+                            }
+                    except Exception as e:
+                        logger.warning(f"获取列类型信息失败: {e}")
+                    
+                    total_pages = math.ceil(total / page_size)
+                    
+                    return {
+                        'table': table,
+                        'database': database,
+                        'columns': columns,
+                        'column_types': column_types,
+                        'rows': rows,
+                        'pagination': {
+                            'page': page,
+                            'page_size': page_size,
+                            'total': total,
+                            'total_pages': total_pages
+                        }
+                    }
+                    
+        except Exception as e:
+            logger.error(f"获取表数据失败({database}.{table}): {e}")
+            raise
+    
+    async def execute_write(self, sql: str, params: tuple = None) -> dict:
+        """
+        执行写操作（INSERT/UPDATE/DELETE）
+        
+        Returns:
+            {'affected_rows': int, 'success': bool}
+        """
+        if not self._connected or not self._pool:
+            raise ConnectionError("MySQL连接未建立")
+        
+        try:
+            async with self._pool.acquire() as conn:
+                async with conn.cursor() as cur:
+                    if params:
+                        await cur.execute(sql, params)
+                    else:
+                        await cur.execute(sql)
+                    
+                    affected_rows = cur.rowcount
+                    await conn.commit()
+                    
+                    logger.info(f"写操作完成: 影响{affected_rows}行")
+                    return {'affected_rows': affected_rows, 'success': True}
+                    
+        except Exception as e:
+            logger.error(f"写操作执行错误: {sql[:100]}... 错误: {e}")
+            try:
+                if self._pool:
+                    async with self._pool.acquire() as conn:
+                        await conn.rollback()
+            except:
+                pass
+            raise
+    
+    async def send(self, data: str):
+        """
+        发送指令（处理前端请求）
+        
+        data格式: JSON字符串
+        {'action': 'get_databases'|'get_tables'|'query'|'get_table_data'|'execute_write', ...}
+        """
+        if not self._connected:
+            raise ConnectionError("MySQL connection is not active.")
+        
+        try:
+            request = json.loads(data)
+            action = request.get('action')
+            
+            result = None
+            
+            if action == 'get_databases':
+                result = {'type': 'databases', 'data': await self.get_databases()}
+                
+            elif action == 'get_tables':
+                database = request.get('database')
+                tables = await self.get_tables(database)
+                result = {'type': 'tables', 'data': tables, 'database': database}
+                
+            elif action == 'get_table_columns':
+                database = request.get('database')
+                table = request.get('table')
+                columns = await self.get_table_columns(database, table)
+                result = {'type': 'columns', 'data': columns, 'database': database, 'table': table}
+                
+            elif action == 'query':
+                sql = request.get('sql', '')
+                query_result = await self.execute_query(sql)
+                result = {'type': 'query_result', 'data': query_result}
+                
+            elif action == 'get_table_data':
+                database = request.get('database')
+                table = request.get('table')
+                page = request.get('page', 1)
+                page_size = request.get('page_size', 50)
+                table_data = await self.get_table_data(database, table, page, page_size)
+                result = {'type': 'table_data', 'data': table_data}
+                
+            elif action == 'execute_write':
+                sql = request.get('sql', '')
+                write_result = await self.execute_write(sql)
+                result = {'type': 'write_result', 'data': write_result}
+                
+            else:
+                result = {'type': 'error', 'data': f'未知操作: {action}'}
+            
+            if result and self._recv_callback:
+                serialized = json.dumps(result, default=_json_serialize)
+                if asyncio.iscoroutinefunction(self._recv_callback):
+                    await self._recv_callback(serialized)
+                else:
+                    self._recv_callback(serialized)
+
+        except json.JSONDecodeError:
+            logger.warning(f"无效的JSON数据: {data}")
+        except Exception as e:
+            error_result = {'type': 'error', 'data': str(e)}
+            if self._recv_callback:
+                serialized = json.dumps(error_result, default=_json_serialize)
+                if asyncio.iscoroutinefunction(self._recv_callback):
+                    await self._recv_callback(serialized)
+                else:
+                    self._recv_callback(serialized)
+    
+    async def resize(self, cols: int, rows: int):
+        """MySQL不需要调整窗口大小，保留接口兼容性"""
+        pass
+    
+    async def close(self):
+        """关闭连接池"""
+        if not self._connected:
+            return
+        
+        self._connected = False
+        
+        if self._pool:
+            self._pool.close()
+            await self._pool.wait_closed()
+            self._pool = None
+        
+        if self._on_disconnect:
+            await self._on_disconnect()
+        
+        logger.info("MySQL连接已关闭")

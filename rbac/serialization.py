@@ -97,6 +97,19 @@ class UserSerializer(serializers.ModelSerializer):
         if attrs.get('password'):
             attrs['password'] = encrypt_password(attrs['password'])
         return attrs
+    
+    def create(self, validated_data):
+        # 创建用户
+        user = super().create(validated_data)
+        # 自动添加【用户】角色
+        try:
+            from .models import Role
+            client_role = Role.objects.get(code='Client')
+            user.roles.add(client_role)
+        except Exception:
+            pass
+        return user
+    
     def update(self,instance, validated_data):
         self.validated_data.pop('account',None)
         updated_instance = super().update(instance, validated_data)

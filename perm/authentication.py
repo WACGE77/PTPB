@@ -57,7 +57,8 @@ def get_code(view):
         permission_code = view.permission_mapping.get(view.action, None)
     else:
         permission_code = getattr(view, 'permission_code', None)
-    if not permission_code:
+    # 如果permission_code为None，表示不需要特定权限
+    if permission_code is not None and not permission_code:
         raise PermissionDenied(detail='代码写错了',code=403)
     return permission_code
 
@@ -66,6 +67,9 @@ class BasePermission(TokenPermission):
     def auth(self,request, view):
         super().auth(request, view)
         permission_code = get_code(view)
+        # 如果permission_code为None，表示不需要特定权限，直接通过
+        if permission_code is None:
+            return True, None
         auth = BaseAuth.objects.filter(permission__code=permission_code,role__in=request.user.roles.all()).exists()
         if not auth:
             raise PermissionDenied(detail='您无当前权限访问',code=403)

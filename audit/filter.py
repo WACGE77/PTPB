@@ -1,6 +1,6 @@
 import django_filters
 
-from audit.models import LoginLog, OperationLog, SessionLog
+from audit.models import LoginLog, OperationLog, SessionLog, ShellOperationLog
 
 
 class LoginLogFilter(django_filters.rest_framework.FilterSet):
@@ -25,3 +25,13 @@ class SessionLogFilter(django_filters.rest_framework.FilterSet):
     class Meta:
         model = SessionLog
         fields = ['resource', 'user', 'ip', 'start_time']
+
+class ShellOperationLogFilter(django_filters.rest_framework.FilterSet):
+    user = django_filters.CharFilter(field_name='user__name', lookup_expr='icontains')
+    content = django_filters.CharFilter(field_name='content', lookup_expr='icontains')
+    blocked = django_filters.BooleanFilter(field_name='blocked')
+    operation_time_after = django_filters.DateTimeFilter(field_name='operation_time', lookup_expr='gte')
+    operation_time_before = django_filters.DateTimeFilter(field_name='operation_time', lookup_expr='lte')
+    class Meta:
+        model = ShellOperationLog
+        fields = ['user', 'content', 'blocked', 'operation_time_after', 'operation_time_before']

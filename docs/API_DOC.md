@@ -2146,7 +2146,310 @@ Authorization: <access_token>
 }
 ```
 
+## 十二、探针监控管理 (alert)
 
+### 42. 查看探针规则
+- **请求方法**: GET
+- **URL**: `https://设备/api/alert/rule/get/`
+- **请求头**: `Authorization: <access_token>`
+
+#### 查询参数
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page_size | int | 每页数量 (默认10, 最大100) |
+| all | bool | 获取全部数据 |
+
+#### 请求示例
+```
+GET https://设备/api/alert/rule/get/
+Authorization: <access_token>
+```
+
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| total | 总记录数 |
+| detail | 探针规则列表 |
+
+#### 返回示例
+- **成功时返回**
+```json
+{
+    "code": 200,
+    "msg": "OK",
+    "total": 1,
+    "detail": [
+        {
+            "id": 1,
+            "name": "测试探针",
+            "target": "http://example.com",
+            "detect_interval": 30,
+            "alert_threshold": 3,
+            "alert_interval": 300,
+            "is_enabled": true,
+            "last_status": "up",
+            "create_date": "2025-01-01T08:00:00+08:00",
+            "update_date": "2025-01-01T08:00:00+08:00"
+        }
+    ]
+}
+```
+
+### 43. 添加探针规则
+- **请求方法**: POST
+- **URL**: `https://设备/api/alert/rule/add/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| name | 是 | 字符串 | 探针规则名称 |
+| target | 是 | 字符串 | 探测目标URL/IP |
+| detect_interval | 是 | 整数 | 探测间隔（秒） |
+| alert_threshold | 是 | 整数 | 告警阈值（连续失败次数） |
+| alert_interval | 是 | 整数 | 告警间隔（秒） |
+| method | 是 | 字符串 | 探测方法（http/tcp/ping） |
+| is_enabled | 是 | 布尔值 | 是否启用 |
+| alert_methods | 是 | 数组 | 告警方式ID列表 |
+| alert_template | 是 | 整数 | 告警模板ID |
+
+#### 请求示例
+```json
+{
+    "name": "测试探针",
+    "target": "http://example.com",
+    "detect_interval": 30,
+    "alert_threshold": 3,
+    "alert_interval": 300,
+    "method": "http",
+    "is_enabled": true,
+    "alert_methods": [1],
+    "alert_template": 1
+}
+```
+
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+### 44. 修改探针规则
+- **请求方法**: POST
+- **URL**: `https://设备/api/alert/rule/edit/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id | 是 | 整数 | 探针规则ID |
+| name | 否 | 字符串 | 探针规则名称 |
+| target | 否 | 字符串 | 探测目标URL/IP |
+| detect_interval | 否 | 整数 | 探测间隔（秒） |
+| alert_threshold | 否 | 整数 | 告警阈值（连续失败次数） |
+| alert_interval | 否 | 整数 | 告警间隔（秒） |
+| method | 否 | 字符串 | 探测方法（http/tcp/ping） |
+| is_enabled | 否 | 布尔值 | 是否启用 |
+| alert_methods | 否 | 数组 | 告警方式ID列表 |
+| alert_template | 否 | 整数 | 告警模板ID |
+
+### 45. 删除探针规则
+- **请求方法**: POST
+- **URL**: `https://设备/api/alert/rule/del/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id_list | 是 | 数组 | 探针规则ID列表 |
+
+### 46. 切换探针规则启用状态
+- **请求方法**: POST
+- **URL**: `https://设备/api/alert/rule/{id}/toggle/`
+- **请求头**: `Authorization: <access_token>`
+
+#### 参数说明
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| id | int | 探针规则ID（URL路径参数） |
+
+### 47. 查看告警方式
+- **请求方法**: GET
+- **URL**: `https://设备/api/alert/method/get/`
+- **请求头**: `Authorization: <access_token>`
+
+#### 查询参数
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page_size | int | 每页数量 (默认10, 最大100) |
+| all | bool | 获取全部数据 |
+
+### 48. 添加告警方式
+- **请求方法**: POST
+- **URL**: `https://设备/api/alert/method/add/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| name | 是 | 字符串 | 告警方式名称 |
+| type | 是 | 字符串 | 告警类型（email/webhook） |
+| config | 是 | 对象 | 配置详情 |
+
+### 49. 修改告警方式
+- **请求方法**: POST
+- **URL**: `https://设备/api/alert/method/edit/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id | 是 | 整数 | 告警方式ID |
+| name | 否 | 字符串 | 告警方式名称 |
+| type | 否 | 字符串 | 告警类型（email/webhook） |
+| config | 否 | 对象 | 配置详情 |
+
+### 50. 删除告警方式
+- **请求方法**: POST
+- **URL**: `https://设备/api/alert/method/del/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id_list | 是 | 数组 | 告警方式ID列表 |
+
+### 51. 查看告警模板
+- **请求方法**: GET
+- **URL**: `https://设备/api/alert/template/get/`
+- **请求头**: `Authorization: <access_token>`
+
+#### 查询参数
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page_size | int | 每页数量 (默认10, 最大100) |
+| all | bool | 获取全部数据 |
+
+### 52. 添加告警模板
+- **请求方法**: POST
+- **URL**: `https://设备/api/alert/template/add/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| name | 是 | 字符串 | 模板名称 |
+| subject | 是 | 字符串 | 邮件主题（支持变量） |
+| content | 是 | 字符串 | 邮件内容（支持变量） |
+
+### 53. 修改告警模板
+- **请求方法**: POST
+- **URL**: `https://设备/api/alert/template/edit/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id | 是 | 整数 | 模板ID |
+| name | 否 | 字符串 | 模板名称 |
+| subject | 否 | 字符串 | 邮件主题（支持变量） |
+| content | 否 | 字符串 | 邮件内容（支持变量） |
+
+### 54. 删除告警模板
+- **请求方法**: POST
+- **URL**: `https://设备/api/alert/template/del/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id_list | 是 | 数组 | 模板ID列表 |
+
+### 55. 查看探测日志
+- **请求方法**: GET
+- **URL**: `https://设备/api/alert/log/get/`
+- **请求头**: `Authorization: <access_token>`
+
+#### 查询参数
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page_size | int | 每页数量 (默认10, 最大100) |
+| rule | int | 探针规则ID过滤 |
+
+### 56. 查看SMTP配置
+- **请求方法**: GET
+- **URL**: `https://设备/api/alert/smtp/get/`
+- **请求头**: `Authorization: <access_token>`
+
+#### 查询参数
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page_size | int | 每页数量 (默认10, 最大100) |
+| all | bool | 获取全部数据 |
+
+### 57. 获取当前SMTP配置
+- **请求方法**: GET
+- **URL**: `https://设备/api/alert/smtp/current/`
+- **请求头**: `Authorization: <access_token>`
+
+### 58. 添加SMTP配置
+- **请求方法**: POST
+- **URL**: `https://设备/api/alert/smtp/add/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| name | 是 | 字符串 | SMTP配置名称 |
+| host | 是 | 字符串 | SMTP服务器地址 |
+| port | 是 | 整数 | SMTP服务器端口 |
+| username | 是 | 字符串 | 用户名 |
+| password | 是 | 字符串 | 密码 |
+| use_tls | 是 | 布尔值 | 是否使用TLS |
+| use_ssl | 是 | 布尔值 | 是否使用SSL |
+| is_default | 是 | 布尔值 | 是否为默认配置 |
+
+### 59. 修改SMTP配置
+- **请求方法**: POST
+- **URL**: `https://设备/api/alert/smtp/edit/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id | 是 | 整数 | SMTP配置ID |
+| name | 否 | 字符串 | SMTP配置名称 |
+| host | 否 | 字符串 | SMTP服务器地址 |
+| port | 否 | 整数 | SMTP服务器端口 |
+| username | 否 | 字符串 | 用户名 |
+| password | 否 | 字符串 | 密码 |
+| use_tls | 否 | 布尔值 | 是否使用TLS |
+| use_ssl | 否 | 布尔值 | 是否使用SSL |
+| is_default | 否 | 布尔值 | 是否为默认配置 |
+
+### 60. 删除SMTP配置
+- **请求方法**: POST
+- **URL**: `https://设备/api/alert/smtp/del/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id_list | 是 | 数组 | SMTP配置ID列表 |
 
 ## 错误码说明
 

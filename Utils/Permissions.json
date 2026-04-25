@@ -22,11 +22,17 @@
       "READ": "system.permission.read",
       "UPDATE": "system.permission.update"
     },
-    "SSH_FILTER": {
-      "CREATE": "system.ssh_filter.create",
-      "DELETE": "system.ssh_filter.delete",
-      "UPDATE": "system.ssh_filter.update",
-      "READ": "system.ssh_filter.read"
+    "DANGER_CMD": {
+      "CREATE": "system.danger_cmd.create",
+      "DELETE": "system.danger_cmd.delete",
+      "UPDATE": "system.danger_cmd.update",
+      "READ": "system.danger_cmd.read"
+    },
+    "PROBE": {
+      "CREATE": "system.probe.create",
+      "DELETE": "system.probe.delete",
+      "UPDATE": "system.probe.update",
+      "READ": "system.probe.read"
     }
   },
   "RESOURCE": {

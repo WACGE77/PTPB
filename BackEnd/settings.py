@@ -48,12 +48,14 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'channels',
     'django_redis',
+    'django_celery_beat',
     'rbac',
     'perm',
     'audit',
     'terminal',
     'resource',
-    'ssh_blacklist'
+    'ssh_blacklist',
+    'alert'
 ]
 
 MIDDLEWARE = [
@@ -277,5 +279,23 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False,
         },
+        'alert': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
     },
 }
+
+# Celery 配置
+CELERY_BROKER_URL = 'redis://:123456@127.0.0.1:6379/1'
+CELERY_RESULT_BACKEND = 'redis://:123456@127.0.0.1:6379/1'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Shanghai'
+CELERY_ENABLE_UTC = False
+
+# MySQL数据库管理 - 密码加密密钥（AES-256-GCM，64位十六进制字符串）
+# 生产环境请务必修改为随机生成的强密钥，并妥善保管
+MYSQL_PASSWORD_KEY = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2'

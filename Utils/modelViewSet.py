@@ -113,6 +113,13 @@ class UModelViewSet(ModelViewSet):
     @action(detail=False, methods=['post'], url_path='edit')
     def edit(self, request):
         pk = request.data.get('id')
+        # 确保pk是整数
+        if pk is not None:
+            try:
+                pk = int(pk)
+            except (ValueError, TypeError):
+                return Response({**RESPONSE__400__FAILED, KEY.ERROR: ERRMSG.INVALID.ID}, status=status.HTTP_400_BAD_REQUEST)
+        
         act = AUDIT.ACTION.EDIT + self.audit_object + str(pk)
         instance = get_object_or_404(self.model, pk=pk)
         if self.is_protected(instance):

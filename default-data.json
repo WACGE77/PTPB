@@ -341,6 +341,50 @@
     }
   },
   {
+    "model": "rbac.Permission",
+    "pk": 32,
+    "fields": {
+      "scope": "system",
+      "object": "probe",
+      "action": "create",
+      "code": "system.probe.create",
+      "name": "添加探针"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 33,
+    "fields": {
+      "scope": "system",
+      "object": "probe",
+      "action": "delete",
+      "code": "system.probe.delete",
+      "name": "删除探针"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 34,
+    "fields": {
+      "scope": "system",
+      "object": "probe",
+      "action": "update",
+      "code": "system.probe.update",
+      "name": "修改探针"
+    }
+  },
+  {
+    "model": "rbac.Permission",
+    "pk": 35,
+    "fields": {
+      "scope": "system",
+      "object": "probe",
+      "action": "read",
+      "code": "system.probe.read",
+      "name": "查看探针"
+    }
+  },
+  {
     "model": "rbac.Role",
     "pk": 1,
     "fields": {
@@ -620,6 +664,78 @@
     }
   },
   {
+    "model": "perm.BaseAuth",
+    "pk": 26,
+    "fields": {
+      "role": 1,
+      "permission": 32,
+      "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 27,
+    "fields": {
+      "role": 1,
+      "permission": 33,
+      "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 28,
+    "fields": {
+      "role": 1,
+      "permission": 34,
+      "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 29,
+    "fields": {
+      "role": 1,
+      "permission": 35,
+      "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 30,
+    "fields": {
+      "role": 2,
+      "permission": 21,
+      "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 31,
+    "fields": {
+      "role": 2,
+      "permission": 22,
+      "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 32,
+    "fields": {
+      "role": 2,
+      "permission": 23,
+      "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "perm.BaseAuth",
+    "pk": 33,
+    "fields": {
+      "role": 2,
+      "permission": 24,
+      "create_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
     "model": "perm.ResourceGroupAuth",
     "pk": 1,
     "fields": {
@@ -885,6 +1001,22 @@
       "permission_code": "audit.session.read",
       "parent_id": null,
       "order": 5,
+      "status": true,
+      "create_date": "2025-01-01T00:00:00Z",
+      "update_date": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "rbac.Route",
+    "pk": 9,
+    "fields": {
+      "path": "/alert",
+      "component": "@/views/AlertView.vue",
+      "title": "探针监控",
+      "icon": "Bell",
+      "permission_code": "system.probe.read",
+      "parent_id": null,
+      "order": 6,
       "status": true,
       "create_date": "2025-01-01T00:00:00Z",
       "update_date": "2025-01-01T00:00:00Z"

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import LoginLog,OperationLog,SessionLog
+from .models import LoginLog,OperationLog,SessionLog,ShellOperationLog
 from rbac.models import User
 from resource.models import Resource,Voucher
 class RecordUserSerializer(serializers.ModelSerializer):
@@ -39,4 +39,10 @@ class SessionLogSerializer(serializers.ModelSerializer):
     voucher = RecordVoucherSerializer()
     class Meta:
         model = SessionLog
+        fields = "__all__"
+
+class ShellOperationLogSerializer(serializers.ModelSerializer):
+    user = RecordUserSerializer()
+    class Meta:
+        model = ShellOperationLog
         fields = "__all__"

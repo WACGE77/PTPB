@@ -6,8 +6,8 @@
     "VOUCHER": "凭证",
     "PERMISSION": "权限",
     "RESOURCE_GROUP": "资源组",
-    "SSH_FILTER": "SSH黑名单规则",
-    "SSH_FILTER_MODE": "SSH黑名单模式"
+    "DANGER_CMD": "危险命令告警规则",
+    "DANGER_CMD_MODE": "危险命令告警模式"
   },
   "ACTION": {
     "ADD": "添加",

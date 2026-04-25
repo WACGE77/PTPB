@@ -8,40 +8,36 @@ from Utils.Const import PERMISSIONS, METHODS, AUDIT, RESPONSE__200__SUCCESS, RES
 
 from audit.Logging import OperaLogging
 
-from .models import SSHCommandFilter
-from .serialization import SSHCommandFilterSerializer
+from .models import DangerCommandRule
+from .serialization import DangerCommandRuleSerializer
 from .cache import clear_cache
 
-# 创建SSH命令过滤规则视图集
-_SSHCommandFilterViewSet = create_base_view_set(
-    SSHCommandFilter,
-    SSHCommandFilterSerializer,
+_DangerCommandRuleViewSet = create_base_view_set(
+    DangerCommandRule,
+    DangerCommandRuleSerializer,
     [],
-    PERMISSIONS.SYSTEM.SSH_FILTER,
+    PERMISSIONS.SYSTEM.DANGER_CMD,
     OperaLogging,
-    AUDIT.CLASS.SSH_FILTER,
+    AUDIT.CLASS.DANGER_CMD,
 )
 
-class SSHCommandFilterViewSet(_SSHCommandFilterViewSet):
-    """SSH命令过滤规则视图集"""
+class DangerCommandRuleViewSet(_DangerCommandRuleViewSet):
+    """危险命令告警规则视图集"""
     
     def search(self, request):
-        """搜索规则"""
         group_id = request.query_params.get('group_id')
         if group_id:
-            return SSHCommandFilter.objects.filter(group__id=group_id)
-        return SSHCommandFilter.objects.all()
+            return DangerCommandRule.objects.filter(group__id=group_id)
+        return DangerCommandRule.objects.all()
     
     def add_or_edit(self, request, serializer, act):
-        """重写添加或编辑方法，处理group_id字段"""
         instance = None
         if serializer.is_valid():
             try:
                 instance = serializer.save()
                 self.out_log(request, act, True)
-                # 清除缓存
                 clear_cache(instance.group.id)
-                return instance, Response({**RESPONSE__200__SUCCESS, KEY.SUCCESS: SSHCommandFilterSerializer(instance).data}, status=status.HTTP_200_OK)
+                return instance, Response({**RESPONSE__200__SUCCESS, KEY.SUCCESS: DangerCommandRuleSerializer(instance).data}, status=status.HTTP_200_OK)
             except Exception as e:
                 error_message = str(e)
                 if hasattr(e, 'detail'):
@@ -52,7 +48,6 @@ class SSHCommandFilterViewSet(_SSHCommandFilterViewSet):
     
     @action(detail=False, methods=['post'], url_path='del')
     def delete(self, request):
-        """重写删除方法，清除缓存"""
         from Utils.modelViewSet import IDListSerializer
         serializer = IDListSerializer(data=request.data)
         act = AUDIT.ACTION.DEL + self.audit_object
@@ -62,8 +57,7 @@ class SSHCommandFilterViewSet(_SSHCommandFilterViewSet):
             if remain:
                 return Response({**RESPONSE__400__FAILED, KEY.ERROR: remain}, status=status.HTTP_400_BAD_REQUEST)
             
-            # 获取要删除的规则，以便清除缓存
-            rules = SSHCommandFilter.objects.filter(id__in=id_list)
+            rules = DangerCommandRule.objects.filter(id__in=id_list)
             group_ids = set()
             for rule in rules:
                 group_ids.add(rule.group.id)
@@ -71,7 +65,6 @@ class SSHCommandFilterViewSet(_SSHCommandFilterViewSet):
             count = rules.count()
             rules.delete()
             
-            # 清除缓存
             for group_id in group_ids:
                 clear_cache(group_id)
             
